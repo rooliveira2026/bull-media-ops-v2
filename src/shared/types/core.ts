@@ -28,6 +28,10 @@ export type ModuleAction =
   | "mark_action_monitoring"
   | "register_action_result"
   | "reopen_recommended_action"
+  | "submit_social_post"
+  | "approve_social_post"
+  | "request_social_post_adjustments"
+  | "update_social_post_status"
   | "manage";
 
 export type IntegrationStatus = "not_connected" | "connected" | "syncing" | "error";
