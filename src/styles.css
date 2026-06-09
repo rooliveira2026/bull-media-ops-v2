@@ -730,6 +730,107 @@ td small {
   line-height: 1.4;
 }
 
+.social-filter-bar {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.social-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.social-calendar,
+.social-post-list {
+  display: grid;
+  gap: 12px;
+}
+
+.calendar-day {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.calendar-day__date {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding-right: 12px;
+  border-right: 1px solid var(--border);
+}
+
+.calendar-day__date strong {
+  font-size: 16px;
+  text-transform: capitalize;
+}
+
+.calendar-day__date span,
+.calendar-post span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.calendar-day__posts {
+  display: grid;
+  gap: 8px;
+}
+
+.calendar-post {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-post:hover {
+  border-color: #d8c4ff;
+  background: #fbf9ff;
+}
+
+.calendar-post strong,
+.calendar-post span {
+  display: block;
+}
+
+.calendar-post span {
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.badge--social-status-scheduled,
+.badge--social-status-published,
+.badge--social-approval-approved {
+  background: #ecfdf5;
+  color: var(--success);
+  border-color: #bbf7d0;
+}
+
+.badge--social-status-in_production,
+.badge--social-status-ready,
+.badge--social-approval-submitted,
+.badge--social-approval-adjustments_requested {
+  background: #fffbeb;
+  color: var(--warning);
+  border-color: #fde68a;
+}
+
+.badge--social-status-draft,
+.badge--social-status-paused,
+.badge--social-approval-not_submitted {
+  background: #f4f4f5;
+  color: #52525b;
+}
+
 @media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -745,7 +846,8 @@ td small {
   }
 
   .kpi-grid,
-  .core-grid {
+  .core-grid,
+  .social-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -768,7 +870,16 @@ td small {
   .sidebar__nav,
   .kpi-grid,
   .core-grid,
-  .filter-bar {
+  .filter-bar,
+  .social-layout,
+  .calendar-day {
     grid-template-columns: 1fr;
+  }
+
+  .calendar-day__date {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: 10px;
   }
 }

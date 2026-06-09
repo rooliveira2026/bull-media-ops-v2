@@ -126,7 +126,7 @@ export const mockClientAccess: ClientAccess[] = mockClients.map((client) => ({
 export const mockModules: Module[] = [
   { id: "module_core", key: "core", name: "Core Platform", description: "Clientes, usuários, roles e permissões.", status: "active" },
   { id: "module_media_ops", key: "media_ops", name: "Media Ops", description: "Performance, diagnósticos e ações de mídia.", status: "active" },
-  { id: "module_social_ops", key: "social_ops", name: "Social Ops", description: "Calendário, posts, aprovação e métricas sociais.", status: "planned" },
+  { id: "module_social_ops", key: "social_ops", name: "Social Ops", description: "Calendário, posts, aprovação e métricas sociais.", status: "active" },
   { id: "module_creative_ops", key: "creative_ops", name: "Creative Ops", description: "Criativos, testes e aprendizados.", status: "planned" },
   { id: "module_reports", key: "reports", name: "Reports", description: "Relatórios, revisão e histórico.", status: "planned" },
   { id: "module_pdm", key: "pdm", name: "PDM", description: "Planejamento mensal, cenários e aprovações.", status: "planned" },
@@ -147,6 +147,16 @@ export const mockModuleAccess: ModuleAccess[] = [
   { id: "module_access_analista_execute", roleId: "role_analista", moduleKey: "media_ops", actionKey: "execute_recommended_action", allowed: true },
   { id: "module_access_analista_monitor", roleId: "role_analista", moduleKey: "media_ops", actionKey: "register_action_result", allowed: true },
   { id: "module_access_viewer_media", roleId: "role_visualizador", moduleKey: "media_ops", actionKey: "read", allowed: true },
+  { id: "module_access_gestor_social_read", roleId: "role_gestor", moduleKey: "social_ops", actionKey: "read", allowed: true },
+  { id: "module_access_gestor_social_approve", roleId: "role_gestor", moduleKey: "social_ops", actionKey: "approve_social_post", allowed: true },
+  { id: "module_access_gestor_social_adjust", roleId: "role_gestor", moduleKey: "social_ops", actionKey: "request_social_post_adjustments", allowed: true },
+  { id: "module_access_gestor_social_status", roleId: "role_gestor", moduleKey: "social_ops", actionKey: "update_social_post_status", allowed: true },
+  { id: "module_access_analista_social_read", roleId: "role_analista", moduleKey: "social_ops", actionKey: "read", allowed: true },
+  { id: "module_access_analista_social_create", roleId: "role_analista", moduleKey: "social_ops", actionKey: "create", allowed: true },
+  { id: "module_access_analista_social_edit", roleId: "role_analista", moduleKey: "social_ops", actionKey: "edit", allowed: true },
+  { id: "module_access_analista_social_submit", roleId: "role_analista", moduleKey: "social_ops", actionKey: "submit_social_post", allowed: true },
+  { id: "module_access_analista_social_status", roleId: "role_analista", moduleKey: "social_ops", actionKey: "update_social_post_status", allowed: true },
+  { id: "module_access_viewer_social", roleId: "role_visualizador", moduleKey: "social_ops", actionKey: "read", allowed: true },
   { id: "module_access_viewer_reports", roleId: "role_visualizador", moduleKey: "reports", actionKey: "read", allowed: true },
 ];
 
