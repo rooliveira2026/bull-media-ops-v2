@@ -1,4 +1,5 @@
 import { Activity, Command } from "lucide-react";
+import { useAuth } from "../auth/AuthProvider";
 import { navItems, type RouteKey } from "./navigation";
 
 interface AppShellProps {
@@ -8,6 +9,8 @@ interface AppShellProps {
 }
 
 export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
+  const { isSupabaseMode, user, signOut } = useAuth();
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -51,9 +54,16 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
             <span className="topbar__label">Bull Digital</span>
             <strong>Marketing Operations Platform</strong>
           </div>
-          <div className="topbar__status">
-            <span />
-            Mock data · Sprint 0
+          <div className="topbar__actions">
+            <div className="topbar__status">
+              <span />
+              {isSupabaseMode ? "Supabase staging" : "Mock data"}
+            </div>
+            {isSupabaseMode ? (
+              <button className="topbar__logout" onClick={signOut} type="button">
+                Sair{user?.email ? ` · ${user.email}` : ""}
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="content">{children}</div>

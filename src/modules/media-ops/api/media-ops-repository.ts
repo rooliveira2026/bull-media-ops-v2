@@ -1,5 +1,6 @@
 import { createAuditEvent } from "../../../shared/audit/audit";
 import { mockClients } from "../../../shared/api/mock-data";
+import { getSupabaseClient } from "../../../shared/api/supabase-client";
 import { listAuditLogs } from "../../core/api/core-repository";
 import { mockV1MediaRows, normalizeV1MediaRowsToV2 } from "../importers/v1-importer";
 import type {
@@ -30,6 +31,18 @@ interface ActionFilters {
   status?: RecommendedActionStatus | "all";
   priority?: RecommendedActionPriority;
   search?: string;
+}
+
+interface MediaOpsRepository {
+  listRecommendedActions(filters?: ActionFilters): Promise<RecommendedAction[]>;
+  approveRecommendedAction(actionId: string, payload?: ApproveRecommendedActionPayload): Promise<RecommendedAction>;
+  dismissRecommendedAction(actionId: string, reason: string, profileId?: string | null): Promise<RecommendedAction>;
+  moveActionToReview(actionId: string, payload?: MoveActionToReviewPayload): Promise<RecommendedAction>;
+  executeRecommendedAction(actionId: string, payload?: ExecuteRecommendedActionPayload): Promise<ActionExecution>;
+  markActionMonitoring(actionId: string, payload?: MarkActionMonitoringPayload): Promise<RecommendedAction>;
+  registerActionResult(actionId: string, payload?: MarkActionMonitoringPayload): Promise<RecommendedAction>;
+  reopenRecommendedAction(actionId: string, note?: string, profileId?: string | null): Promise<RecommendedAction>;
+  listActionExecutions(actionId: string): Promise<ActionExecution[]>;
 }
 
 const organizationId = "org_bull";
@@ -130,6 +143,97 @@ const actions: RecommendedAction[] = [
 
 const executions: ActionExecution[] = [];
 
+function assertNoError(error: unknown) {
+  if (error) throw error;
+}
+
+function mapRecommendedAction(row: Record<string, any>): RecommendedAction {
+  const client = Array.isArray(row.clients) ? row.clients[0] : row.clients;
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    clientId: row.client_id,
+    clientName: client?.name ?? row.client_name ?? row.client_id,
+    moduleKey: "media_ops",
+    sourcePlatform: row.source_platform ?? "",
+    channel: row.channel ?? "",
+    campaignName: row.campaign_name ?? null,
+    title: row.title,
+    description: row.description ?? "",
+    priority: row.priority ?? "medium",
+    status: row.status ?? "suggested",
+    curationNote: row.curation_note ?? null,
+    dismissedReason: row.dismissed_reason ?? null,
+    approvedBy: row.approved_by ?? null,
+    approvedAt: row.approved_at ?? null,
+    executedBy: row.executed_by ?? null,
+    executedAt: row.executed_at ?? null,
+    recheckAt: row.recheck_at ?? null,
+    expectedImpact: row.expected_impact ?? "",
+    impactAssessment: row.impact_assessment ?? null,
+    confidence: row.confidence === null || row.confidence === undefined ? null : Number(row.confidence),
+    metricImpacted: row.metric_impacted ?? null,
+    beforeValue: row.before_value === null || row.before_value === undefined ? null : Number(row.before_value),
+    afterValue: row.after_value === null || row.after_value === undefined ? null : Number(row.after_value),
+    metadata: row.metadata ?? {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapActionExecution(row: Record<string, any>): ActionExecution {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    actionId: row.action_id,
+    clientId: row.client_id,
+    profileId: row.profile_id ?? null,
+    executedBy: row.executed_by ?? null,
+    status: row.status,
+    executionNote: row.execution_note ?? null,
+    executedAt: row.executed_at,
+    recheckAt: row.recheck_at ?? null,
+    impactAssessment: row.impact_assessment ?? null,
+    metadata: row.metadata ?? {},
+  };
+}
+
+async function withMockFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return fallback();
+  try {
+    return await callback();
+  } catch (error) {
+    console.warn("[supabase:media_ops] fallback para mock:", error);
+    return fallback();
+  }
+}
+
+async function selectRecommendedActions(filters: ActionFilters = {}) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  let query = supabase
+    .from("recommended_actions")
+    .select("*, clients(name)")
+    .eq("module_key", "media_ops")
+    .order("created_at", { ascending: false });
+
+  if (filters.clientId) query = query.eq("client_id", filters.clientId);
+  if (filters.channel) query = query.eq("channel", filters.channel);
+  if (filters.sourcePlatform) query = query.eq("source_platform", filters.sourcePlatform);
+  if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
+  if (filters.priority) query = query.eq("priority", filters.priority);
+  if (filters.search?.trim()) {
+    const search = filters.search.trim();
+    query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,campaign_name.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query;
+  assertNoError(error);
+  return (data ?? []).map(mapRecommendedAction);
+}
+
 function sum(rows: MediaMetricDaily[], key: "cost" | "conversions" | "revenue" | "clicks" | "impressions") {
   return rows.reduce((total, row) => total + row[key], 0);
 }
@@ -159,13 +263,13 @@ function summarizeChannel(rows: MediaMetricDaily[]): ChannelSummary[] {
     .sort((a, b) => b.cost - a.cost);
 }
 
-function summarizeClients(rows: MediaMetricDaily[]): ClientMediaSummary[] {
+function summarizeClients(rows: MediaMetricDaily[], currentActions = actions): ClientMediaSummary[] {
   return mockClients.map((client) => {
     const clientRows = rows.filter((row) => row.clientId === client.id);
     const cost = sum(clientRows, "cost");
     const conversions = sum(clientRows, "conversions");
     const revenue = sum(clientRows, "revenue");
-    const clientActions = actions.filter((action) => action.clientId === client.id);
+    const clientActions = currentActions.filter((action) => action.clientId === client.id);
     const roas = cost ? revenue / cost : 0;
     const cpa = conversions ? cost / conversions : 0;
     const status =
@@ -203,11 +307,12 @@ function rowsForPeriod(period: MediaPeriod) {
 export async function getMediaOverview(params: OverviewParams = {}): Promise<MediaOverview> {
   const period = params.period ?? "last_30d";
   const rows = rowsForPeriod(period);
+  const currentActions = await listRecommendedActions();
   const cost = sum(rows, "cost");
   const conversions = sum(rows, "conversions");
   const revenue = sum(rows, "revenue");
   const topChannels = summarizeChannel(rows);
-  const clients = summarizeClients(rows);
+  const clients = summarizeClients(rows, currentActions);
 
   return {
     period,
@@ -216,7 +321,7 @@ export async function getMediaOverview(params: OverviewParams = {}): Promise<Med
       monitoredClients: clients.length,
       activeChannels: topChannels.length,
       accountsForReview: clients.filter((client) => client.status === "review").length,
-      recommendedActions: actions.filter((action) => action.status !== "executed").length,
+      recommendedActions: currentActions.filter((action) => action.status !== "executed").length,
       cost,
       conversions,
       revenue,
@@ -225,12 +330,13 @@ export async function getMediaOverview(params: OverviewParams = {}): Promise<Med
     },
     topChannels,
     clients,
-    actions,
+    actions: currentActions,
   };
 }
 
 export async function getClientMediaSummary(clientId: string, period: MediaPeriod = "last_30d") {
-  return summarizeClients(rowsForPeriod(period)).find((client) => client.clientId === clientId) ?? null;
+  const currentActions = await listRecommendedActions();
+  return summarizeClients(rowsForPeriod(period), currentActions).find((client) => client.clientId === clientId) ?? null;
 }
 
 export async function getChannelSummary(clientId?: string, period: MediaPeriod = "last_30d") {
@@ -239,6 +345,13 @@ export async function getChannelSummary(clientId?: string, period: MediaPeriod =
 }
 
 export async function listRecommendedActions(filters: ActionFilters = {}) {
+  return withMockFallback(async () => {
+    const result = await selectRecommendedActions(filters);
+    return result ?? listRecommendedActionsMock(filters);
+  }, () => Promise.resolve(listRecommendedActionsMock(filters)));
+}
+
+function listRecommendedActionsMock(filters: ActionFilters = {}) {
   return actions.filter((action) => {
     const clientMatches = !filters.clientId || action.clientId === filters.clientId;
     const channelMatches = !filters.channel || action.channel === filters.channel;
@@ -285,40 +398,133 @@ function updateAction(action: RecommendedAction, patch: Partial<RecommendedActio
 }
 
 export async function approveRecommendedAction(actionId: string, payload: ApproveRecommendedActionPayload = {}) {
-  const action = updateAction(findAction(actionId), {
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data, error } = await supabase
+      .from("recommended_actions")
+      .update({
+        status: "approved",
+        curation_note: payload.curationNote ?? null,
+        dismissed_reason: null,
+        approved_by: payload.profileId ?? null,
+        approved_at: new Date().toISOString(),
+      })
+      .eq("id", actionId)
+      .select("*, clients(name)")
+      .single();
+    assertNoError(error);
+    const action = mapRecommendedAction(data);
+    await auditAction(action, "approve_recommended_action", payload.profileId, { curationNote: payload.curationNote ?? null });
+    return action;
+  }, async () => {
+    const action = updateAction(findAction(actionId), {
     status: "approved",
     curationNote: payload.curationNote ?? null,
     dismissedReason: null,
     approvedBy: payload.profileId ?? null,
     approvedAt: new Date().toISOString(),
+    });
+    await auditAction(action, "approve_recommended_action", payload.profileId, { curationNote: payload.curationNote ?? null });
+    return action;
   });
-  await auditAction(action, "approve_recommended_action", payload.profileId, { curationNote: payload.curationNote ?? null });
-  return action;
 }
 
 export async function dismissRecommendedAction(actionId: string, reason: string, profileId: string | null = "user_rodrigo") {
-  const action = updateAction(findAction(actionId), {
-    status: "dismissed",
-    dismissedReason: reason,
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data, error } = await supabase
+      .from("recommended_actions")
+      .update({ status: "dismissed", dismissed_reason: reason })
+      .eq("id", actionId)
+      .select("*, clients(name)")
+      .single();
+    assertNoError(error);
+    const action = mapRecommendedAction(data);
+    await auditAction(action, "dismiss_recommended_action", profileId, { reason });
+    return action;
+  }, async () => {
+    const action = updateAction(findAction(actionId), {
+      status: "dismissed",
+      dismissedReason: reason,
+    });
+    await auditAction(action, "dismiss_recommended_action", profileId, { reason });
+    return action;
   });
-  await auditAction(action, "dismiss_recommended_action", profileId, { reason });
-  return action;
 }
 
 export async function moveActionToReview(actionId: string, payload: MoveActionToReviewPayload = {}) {
-  const action = updateAction(findAction(actionId), {
-    status: "in_review",
-    curationNote: payload.note ?? null,
-    dismissedReason: null,
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data, error } = await supabase
+      .from("recommended_actions")
+      .update({ status: "in_review", curation_note: payload.note ?? null, dismissed_reason: null })
+      .eq("id", actionId)
+      .select("*, clients(name)")
+      .single();
+    assertNoError(error);
+    const action = mapRecommendedAction(data);
+    await auditAction(action, "move_action_to_review", payload.profileId, { note: payload.note ?? null });
+    return action;
+  }, async () => {
+    const action = updateAction(findAction(actionId), {
+      status: "in_review",
+      curationNote: payload.note ?? null,
+      dismissedReason: null,
+    });
+    await auditAction(action, "move_action_to_review", payload.profileId, { note: payload.note ?? null });
+    return action;
   });
-  await auditAction(action, "move_action_to_review", payload.profileId, { note: payload.note ?? null });
-  return action;
 }
 
 export async function executeRecommendedAction(
   actionId: string,
   payload: ExecuteRecommendedActionPayload = {},
 ): Promise<ActionExecution> {
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data: actionRow, error: actionError } = await supabase
+      .from("recommended_actions")
+      .update({
+        status: "executed",
+        executed_by: payload.executedBy ?? payload.profileId ?? null,
+        executed_at: new Date().toISOString(),
+        recheck_at: payload.recheckAt ?? null,
+      })
+      .eq("id", actionId)
+      .select("*, clients(name)")
+      .single();
+    assertNoError(actionError);
+    const action = mapRecommendedAction(actionRow);
+
+    const { data, error } = await supabase
+      .from("action_executions")
+      .insert({
+        organization_id: action.organizationId,
+        action_id: actionId,
+        client_id: action.clientId,
+        profile_id: payload.profileId ?? null,
+        executed_by: payload.executedBy ?? payload.profileId ?? null,
+        status: "executed",
+        execution_note: payload.executionNote ?? null,
+        recheck_at: payload.recheckAt ?? null,
+        metadata: { source: "supabase_repository" },
+      })
+      .select("*")
+      .single();
+    assertNoError(error);
+    const execution = mapActionExecution(data);
+
+    await auditAction(action, "execute_recommended_action", payload.profileId, {
+      executionId: execution.id,
+      recheckAt: execution.recheckAt,
+    });
+
+    return execution;
+  }, async () => {
   const action = findAction(actionId);
 
   updateAction(action, {
@@ -351,47 +557,118 @@ export async function executeRecommendedAction(
   });
 
   return execution;
+  });
 }
 
 export async function markActionMonitoring(actionId: string, payload: MarkActionMonitoringPayload = {}) {
-  const action = updateAction(findAction(actionId), {
-    status: "monitoring",
-    impactAssessment: payload.impactAssessment ?? null,
-    afterValue: payload.afterValue ?? null,
-    recheckAt: payload.recheckAt ?? null,
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data, error } = await supabase
+      .from("recommended_actions")
+      .update({
+        status: "monitoring",
+        impact_assessment: payload.impactAssessment ?? null,
+        after_value: payload.afterValue ?? null,
+        recheck_at: payload.recheckAt ?? null,
+      })
+      .eq("id", actionId)
+      .select("*, clients(name)")
+      .single();
+    assertNoError(error);
+    const action = mapRecommendedAction(data);
+    await auditAction(action, "mark_action_monitoring", payload.profileId, {
+      impactAssessment: payload.impactAssessment ?? null,
+      afterValue: payload.afterValue ?? null,
+    });
+    return action;
+  }, async () => {
+    const action = updateAction(findAction(actionId), {
+      status: "monitoring",
+      impactAssessment: payload.impactAssessment ?? null,
+      afterValue: payload.afterValue ?? null,
+      recheckAt: payload.recheckAt ?? null,
+    });
+    await auditAction(action, "mark_action_monitoring", payload.profileId, {
+      impactAssessment: payload.impactAssessment ?? null,
+      afterValue: payload.afterValue ?? null,
+    });
+    return action;
   });
-  await auditAction(action, "mark_action_monitoring", payload.profileId, {
-    impactAssessment: payload.impactAssessment ?? null,
-    afterValue: payload.afterValue ?? null,
-  });
-  return action;
 }
 
 export async function registerActionResult(actionId: string, payload: MarkActionMonitoringPayload = {}) {
-  const action = updateAction(findAction(actionId), {
-    status: "executed",
-    impactAssessment: payload.impactAssessment ?? null,
-    afterValue: payload.afterValue ?? null,
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data, error } = await supabase
+      .from("recommended_actions")
+      .update({
+        status: "executed",
+        impact_assessment: payload.impactAssessment ?? null,
+        after_value: payload.afterValue ?? null,
+      })
+      .eq("id", actionId)
+      .select("*, clients(name)")
+      .single();
+    assertNoError(error);
+    const action = mapRecommendedAction(data);
+    await auditAction(action, "register_action_result", payload.profileId, {
+      impactAssessment: payload.impactAssessment ?? null,
+      afterValue: payload.afterValue ?? null,
+    });
+    return action;
+  }, async () => {
+    const action = updateAction(findAction(actionId), {
+      status: "executed",
+      impactAssessment: payload.impactAssessment ?? null,
+      afterValue: payload.afterValue ?? null,
+    });
+    await auditAction(action, "register_action_result", payload.profileId, {
+      impactAssessment: payload.impactAssessment ?? null,
+      afterValue: payload.afterValue ?? null,
+    });
+    return action;
   });
-  await auditAction(action, "register_action_result", payload.profileId, {
-    impactAssessment: payload.impactAssessment ?? null,
-    afterValue: payload.afterValue ?? null,
-  });
-  return action;
 }
 
 export async function reopenRecommendedAction(actionId: string, note = "Ação reaberta para nova avaliação.", profileId: string | null = "user_rodrigo") {
-  const action = updateAction(findAction(actionId), {
-    status: "in_review",
-    curationNote: note,
-    dismissedReason: null,
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data, error } = await supabase
+      .from("recommended_actions")
+      .update({ status: "in_review", curation_note: note, dismissed_reason: null })
+      .eq("id", actionId)
+      .select("*, clients(name)")
+      .single();
+    assertNoError(error);
+    const action = mapRecommendedAction(data);
+    await auditAction(action, "reopen_recommended_action", profileId, { note });
+    return action;
+  }, async () => {
+    const action = updateAction(findAction(actionId), {
+      status: "in_review",
+      curationNote: note,
+      dismissedReason: null,
+    });
+    await auditAction(action, "reopen_recommended_action", profileId, { note });
+    return action;
   });
-  await auditAction(action, "reopen_recommended_action", profileId, { note });
-  return action;
 }
 
 export async function listActionExecutions(actionId: string): Promise<ActionExecution[]> {
-  return executions.filter((execution) => execution.actionId === actionId);
+  return withMockFallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase indisponível.");
+    const { data, error } = await supabase
+      .from("action_executions")
+      .select("*")
+      .eq("action_id", actionId)
+      .order("executed_at", { ascending: false });
+    assertNoError(error);
+    return (data ?? []).map(mapActionExecution);
+  }, () => Promise.resolve(executions.filter((execution) => execution.actionId === actionId)));
 }
 
 export async function listActionAuditEvents(actionId: string): Promise<AuditLog[]> {

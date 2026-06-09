@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AppShell } from "../shell/AppShell";
+import { LoginPage } from "../auth/LoginPage";
+import { useAuth } from "../auth/AuthProvider";
 import type { RouteKey } from "../shell/navigation";
 import { AiAgentsPage } from "../modules/ai-agents/AiAgentsPage";
 import { ClientIntelligencePage } from "../modules/client-intelligence/ClientIntelligencePage";
@@ -42,6 +44,15 @@ function renderRoute(route: RouteKey) {
 
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>("executive");
+  const { isLoading, isSupabaseMode, session } = useAuth();
+
+  if (isSupabaseMode && isLoading) {
+    return <div className="app-loading">Carregando sessão...</div>;
+  }
+
+  if (isSupabaseMode && !session) {
+    return <LoginPage />;
+  }
 
   return (
     <AppShell activeRoute={activeRoute} onNavigate={setActiveRoute}>
