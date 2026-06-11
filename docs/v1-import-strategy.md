@@ -25,12 +25,14 @@ scripts/import-v1/run-import-v1-export.mjs
 ```
 
 Os normalizadores TypeScript de referência continuam em:
+Nesta sprint, o importador está em:
 
 ```text
 src/importers/v1/
 ```
 
 Fixture de forma:
+Fixture:
 
 ```text
 src/importers/v1/fixtures/sample-v1-export.json

@@ -20,6 +20,7 @@ Comportamento:
 ## Modo Supabase
 
 Use somente depois de aplicar migrations no Supabase staging e validar a primeira carga:
+Use somente depois de aplicar migrations no Supabase staging:
 
 ```bash
 VITE_DATA_MODE=supabase
@@ -61,6 +62,10 @@ Runbook completo:
 ```text
 docs/first-real-import-runbook.md
 ```
+
+- dados de teste importados ou fixture reprocessada.
+- build Vercel verde.
+- Data Sources mostra estado vazio elegante se ainda não houver importação.
 
 ## Sem Integrações Oficiais Nesta Sprint
 

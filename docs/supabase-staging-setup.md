@@ -5,10 +5,12 @@ Este guia prepara a V2 para rodar em um projeto Supabase staging real, sem alter
 ## 1. Criar projeto Supabase
 
 1. Acesse o Supabase e crie um projeto para staging.
-2. Guarde:
-   - Project URL
-   - anon public key
-   - project ref
+2. Guarde em local seguro:
+
+   * Project URL
+   * Publishable key ou anon public key
+   * Project Ref
+   * Database Password
 3. Não use chaves `service_role` no frontend.
 
 ## 2. Configurar ambiente local
@@ -18,7 +20,7 @@ Crie `.env.local` na raiz da V2:
 ```bash
 VITE_DATA_MODE=supabase
 VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
-VITE_SUPABASE_ANON_KEY=SUA_ANON_KEY
+VITE_SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
 ```
 
 Para voltar ao modo local mock:
@@ -26,6 +28,10 @@ Para voltar ao modo local mock:
 ```bash
 VITE_DATA_MODE=mock
 ```
+
+A variável `VITE_SUPABASE_ANON_KEY` deve receber somente uma chave pública, como `Publishable key` ou `anon public key`.
+
+Nunca configure `service_role`, secret keys, JWT secret, database password ou connection string com senha em variáveis `VITE_`.
 
 ## 3. Aplicar migrations
 
@@ -39,19 +45,16 @@ supabase db push
 
 As migrations aplicam:
 
-- Core Platform
-- Media Ops
-- Action lifecycle
-- Social Ops
-- Persistência staging
-- Auth trigger e RLS mínima segura
-<<<<<<< Updated upstream
-=======
-- Data Sources foundation
-- Import batches
-- Data quality logs
-- First real import workflow
->>>>>>> Stashed changes
+* Core Platform
+* Media Ops
+* Action lifecycle
+* Social Ops
+* Persistência staging
+* Auth trigger e RLS mínima segura
+* Data Sources foundation
+* Import batches
+* Data quality logs
+* First real import workflow
 
 ## 4. Criar usuário admin inicial
 
@@ -65,10 +68,10 @@ select public.bootstrap_staging_admin('admin@seudominio.com');
 
 Esse comando:
 
-- cria ou atualiza a organização `Bull Digital`;
-- cria membership do usuário;
-- atribui role `admin`;
-- concede `client_access` manage para clientes existentes da organização.
+* cria ou atualiza a organização `Bull Digital`;
+* cria membership do usuário;
+* atribui role `admin`;
+* concede `client_access` manage para clientes existentes da organização.
 
 Se ainda não houver clientes, crie clientes depois e rode o comando novamente.
 
@@ -110,7 +113,9 @@ select public.bootstrap_staging_admin('admin@seudominio.com');
 bun run dev
 ```
 
-Em `VITE_DATA_MODE=supabase`, a V2 mostra a tela de login. Em `mock`, a V2 abre direto com dados mockados.
+Em `VITE_DATA_MODE=supabase`, a V2 mostra a tela de login.
+
+Em `VITE_DATA_MODE=mock`, a V2 abre direto com dados mockados.
 
 ## 7. RLS aplicada nesta sprint
 
@@ -118,28 +123,30 @@ As policies não liberam escrita ampla para `anon`.
 
 Regras principais:
 
-- `profiles`: usuário vê o próprio profile; admin vê perfis da organização.
-- `memberships`: membros veem memberships da organização; admin gerencia.
-- `clients`: usuários veem clientes com `client_access`; admin vê todos da organização.
-- `recommended_actions`: leitura por `client_access`; atualização para admin, gestor e analista.
-- `action_executions`: leitura por `client_access`; inserção para admin, gestor e analista.
-- `social_posts`: leitura por `client_access`; criação/edição para admin, gestor e analista.
-- `social_post_approvals`: leitura por `client_access`; aprovação para admin e gestor.
-- `audit_logs`: leitura por acesso ao cliente; inserção por usuário autenticado com acesso.
+* `profiles`: usuário vê o próprio profile; admin vê perfis da organização.
+* `memberships`: membros veem memberships da organização; admin gerencia.
+* `clients`: usuários veem clientes com `client_access`; admin vê todos da organização.
+* `recommended_actions`: leitura por `client_access`; atualização para admin, gestor e analista.
+* `action_executions`: leitura por `client_access`; inserção para admin, gestor e analista.
+* `social_posts`: leitura por `client_access`; criação/edição para admin, gestor e analista.
+* `social_post_approvals`: leitura por `client_access`; aprovação para admin e gestor.
+* `audit_logs`: leitura por acesso ao cliente; inserção por usuário autenticado com acesso.
+* `data_sources`: leitura conforme organização e acesso permitido.
+* `import_batches`: leitura conforme organização e fonte de dados.
+* `data_quality_logs`: leitura conforme organização, cliente e fonte de dados.
 
 ## 8. Fora do escopo desta sprint
 
-- Google Ads
-- Meta Ads
-- GA4
-- Instagram API
-- LinkedIn API
-- TikTok API
-- Apps Script
-- Publicação automática
-- PDM e relatórios reais
-<<<<<<< Updated upstream
-=======
+* Google Ads API
+* Meta Ads API
+* GA4 API
+* Instagram API
+* LinkedIn API
+* TikTok API
+* Apps Script como backend da V2
+* Publicação automática
+* Conexão direta do frontend com planilhas
+* Importação de payload bruto gigante da V1
 
 ## 9. Importação V1 controlada
 
@@ -174,4 +181,53 @@ npm run import:v1 -- --file /caminho/seguro/export-v1.json
 ```
 
 Nunca configurar `SUPABASE_SERVICE_ROLE_KEY` no frontend, Vercel client env ou Lovable.
->>>>>>> Stashed changes
+
+## 10. Tabelas gravadas na primeira carga real
+
+A primeira carga real pode gravar dados normalizados nas seguintes tabelas:
+
+* `data_sources`
+* `import_batches`
+* `clients`
+* `client_channels`
+* `media_metrics_daily`
+* `recommended_actions`
+* `reports`
+* `pdm_plans`
+* `client_intelligence`
+* `data_quality_logs`
+
+O export real da V1 não deve ser commitado. A V2 deve consumir apenas os dados normalizados persistidos em staging.
+
+## 11. Voltar para Mock
+
+Para voltar o app ao modo mock local:
+
+```bash
+VITE_DATA_MODE=mock
+```
+
+Na Vercel, altere a variável:
+
+```bash
+VITE_DATA_MODE=mock
+```
+
+Depois faça redeploy.
+
+## 12. Cuidados de segurança
+
+Nunca commitar:
+
+* `.env`
+* `.env.local`
+* service role key
+* secret keys
+* database password
+* JWT secret
+* connection string com senha
+* export real da V1
+* payload bruto de clientes
+* dados sensíveis de campanhas, contas ou usuários
+
+A `service_role` pode ser usada apenas em execução server-side controlada, job seguro ou terminal local confiável. Ela nunca deve ir para frontend, variável `VITE_`, Lovable ou ambiente público.

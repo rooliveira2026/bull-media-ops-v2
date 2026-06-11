@@ -1,0 +1,115 @@
+{
+  "export_id": "sample-v1-2026-06-11",
+  "source": "legacy_v1_google_sheets_export",
+  "organization_id": "org_bull",
+  "period": {
+    "start": "2026-05-01",
+    "end": "2026-05-31"
+  },
+  "clients": [
+    {
+      "id": "client_about",
+      "name": "About Events",
+      "objective": "lead_generation",
+      "currency": "BRL",
+      "channels": ["Google Ads", "Meta Ads", "LinkedIn"]
+    },
+    {
+      "id": "client_intercity",
+      "name": "Intercity Batel",
+      "objective": "booking",
+      "currency": "BRL",
+      "channels": ["Google Ads", "Meta Ads"]
+    }
+  ],
+  "metrics": [
+    {
+      "client_id": "client_about",
+      "channel": "Google Ads",
+      "date": "2026-05-31",
+      "cost": 24800,
+      "clicks": 8100,
+      "impressions": 184000,
+      "conversions": 176,
+      "revenue": 0
+    },
+    {
+      "client_id": "client_intercity",
+      "channel": "Google Ads",
+      "date": "2026-05-31",
+      "cost": 19600,
+      "clicks": 5200,
+      "impressions": 98000,
+      "conversions": 142,
+      "revenue": 68200
+    }
+  ],
+  "recommended_actions": [
+    {
+      "client_id": "client_about",
+      "client_name": "About Events",
+      "channel": "Google Ads",
+      "recommendation_type": "Termos de busca",
+      "theme": "delivery-ifood",
+      "title": "Refinar termos de busca relacionados a delivery/ifood",
+      "description": "Há tráfego irrelevante em termos de busca com menor intenção para eventos corporativos.",
+      "priority": "alta",
+      "status": "avaliação",
+      "expected_impact": "Oportunidade de eficiência em captação de leads.",
+      "occurrence": "Campanha Search Eventos · termo ifood delivery",
+      "effort_level": "baixo",
+      "decision_owner": "Especialista de Mídia"
+    },
+    {
+      "client_id": "client_about",
+      "client_name": "About Events",
+      "channel": "Google Ads",
+      "recommendation_type": "Termos de busca",
+      "theme": "delivery-ifood",
+      "title": "Refinar termos de busca relacionados a delivery/ifood",
+      "description": "Problema de aderência em consultas amplas.",
+      "priority": "alta",
+      "status": "avaliação",
+      "expected_impact": "Reduzir dispersão e melhorar aderência comercial.",
+      "occurrence": "Grupo Eventos Corporativos · consulta delivery para empresa",
+      "effort_level": "baixo",
+      "decision_owner": "Especialista de Mídia"
+    },
+    {
+      "client_id": "client_intercity",
+      "client_name": "Intercity Batel",
+      "channel": "Meta Ads",
+      "recommendation_type": "Escala controlada",
+      "theme": "reservas-diretas",
+      "title": "Ampliar verba em campanhas com sinal de reserva direta",
+      "description": "Conta crítica por volume limitado em campanhas com boa intenção.",
+      "priority": "media",
+      "status": "aprovada",
+      "expected_impact": "Mais reservas mantendo custo por reserva em acompanhamento.",
+      "occurrence": "Campanha reservas diretas · conjunto mobile",
+      "effort_level": "médio",
+      "decision_owner": "Gestor de Conta"
+    }
+  ],
+  "reports": [
+    {
+      "client_id": "client_about",
+      "period": "2026-05",
+      "type": "mídia paga",
+      "status": "rascunho"
+    }
+  ],
+  "pdm": [
+    {
+      "client_id": "client_intercity",
+      "cycle_objective": "Aumentar reservas diretas",
+      "status": "especialista edita"
+    }
+  ],
+  "client_intelligence": [
+    {
+      "client_id": "client_about",
+      "learning": "Leads com contexto de evento têm maior aderência comercial."
+    }
+  ]
+}
