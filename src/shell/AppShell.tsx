@@ -9,7 +9,7 @@ interface AppShellProps {
 }
 
 export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
-  const { isSupabaseMode, user, signOut } = useAuth();
+  const { isSupabaseMode, memberships, profile, user, signOut } = useAuth();
 
   return (
     <div className="app-shell">
@@ -61,7 +61,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
             </div>
             {isSupabaseMode ? (
               <button className="topbar__logout" onClick={signOut} type="button">
-                Sair{user?.email ? ` · ${user.email}` : ""}
+                Sair{profile?.name || user?.email ? ` · ${profile?.name ?? user?.email}` : ""}{memberships.length ? ` · ${memberships.length} org` : ""}
               </button>
             ) : null}
           </div>
