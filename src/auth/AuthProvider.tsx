@@ -68,6 +68,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isSupabaseMode]);
 
+  const value = useMemo<AuthContextValue>(() => ({
+    isSupabaseMode,
+    isLoading,
+    session,
+    user: session?.user ?? null,
+    configurationError,
+    async signIn(email, password) {
+      const supabase = getSupabaseClient();
+      if (!supabase) return { error: "Supabase não está configurado." };
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: error?.message ?? null };
+    },
+    async signOut() {
+      const supabase = getSupabaseClient();
+      if (!supabase) return;
+      await supabase.auth.signOut();
+    },
+  }), [configurationError, isLoading, isSupabaseMode, session]);
   useEffect(() => {
     if (!isSupabaseMode || !session?.user?.id) {
       setProfile(null);

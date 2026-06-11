@@ -1,5 +1,6 @@
 import { Activity, Command } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
+import { runtimeEnvDiagnostics } from "../shared/config/env";
 import { navItems, type RouteKey } from "./navigation";
 
 interface AppShellProps {
@@ -68,6 +69,13 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
         </div>
         <div className="content">{children}</div>
       </main>
+      <div className="runtime-env-badge" aria-label="Diagnóstico seguro de ambiente">
+        <span>mode: {runtimeEnvDiagnostics.dataMode}</span>
+        <span>raw: {runtimeEnvDiagnostics.rawDataMode || "empty"}</span>
+        <span>url: {runtimeEnvDiagnostics.hasSupabaseUrl ? "ok" : "missing"}</span>
+        <span>anon: {runtimeEnvDiagnostics.hasSupabaseAnonKey ? "ok" : "missing"}</span>
+        <span>prod: {runtimeEnvDiagnostics.isProduction ? "yes" : "no"}</span>
+      </div>
     </div>
   );
 }
