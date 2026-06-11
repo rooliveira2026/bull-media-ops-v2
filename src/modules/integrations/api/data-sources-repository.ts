@@ -1,5 +1,6 @@
 import { mockClients } from "../../../shared/api/mock-data";
 import { getSupabaseClient } from "../../../shared/api/supabase-client";
+import { isSupabaseMode } from "../../../shared/config/env";
 import type { DataQualityLog, DataSourcesOverview, ImportBatch, OperationalDataSource, SourceType } from "../types";
 
 const now = "2026-06-11T10:00:00.000Z";
@@ -193,7 +194,11 @@ function mapQualityLog(row: Record<string, any>): DataQualityLog {
 
 export async function getDataSourcesOverview(): Promise<DataSourcesOverview> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { sources: mockSources, batches: mockBatches, qualityLogs: mockQualityLogs };
+  if (!supabase) {
+    return isSupabaseMode()
+      ? { sources: [], batches: [], qualityLogs: [] }
+      : { sources: mockSources, batches: mockBatches, qualityLogs: mockQualityLogs };
+  }
 
   try {
     const [sourcesResult, batchesResult, qualityResult] = await Promise.all([
@@ -212,6 +217,10 @@ export async function getDataSourcesOverview(): Promise<DataSourcesOverview> {
       qualityLogs: (qualityResult.data ?? []).map(mapQualityLog),
     };
   } catch (error) {
+    if (isSupabaseMode()) {
+      console.warn("[supabase:data_sources] leitura indisponível; retornando estado vazio:", error);
+      return { sources: [], batches: [], qualityLogs: [] };
+    }
     console.warn("[supabase:data_sources] fallback para mock:", error);
     return { sources: mockSources, batches: mockBatches, qualityLogs: mockQualityLogs };
   }

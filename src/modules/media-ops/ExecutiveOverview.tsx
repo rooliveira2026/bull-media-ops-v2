@@ -67,6 +67,7 @@ export function ExecutiveOverview() {
             <p>{overview.actions.filter((action) => action.status === "approved").length} ações aprovadas aguardando execução.</p>
           </div>
           <ul className="simple-list">
+            {overview.actions.length === 0 ? <li><strong>Nenhuma prioridade carregada</strong><span>Entre no Supabase staging ou execute a primeira importação controlada da V1.</span></li> : null}
             {overview.actions.slice(0, 3).map((action) => (
               <li key={action.id}>
                 <strong>{action.title}</strong>
@@ -101,6 +102,7 @@ export function ExecutiveOverview() {
             <p>Canais com maior relevância no período.</p>
           </div>
           <ul className="simple-list">
+            {overview.topChannels.length === 0 ? <li><strong>Nenhum canal monitorado</strong><span>As métricas aparecerão após a primeira importação de staging.</span></li> : null}
             {overview.topChannels.map((channel) => (
               <li key={channel.channel}>
                 <strong>{channel.channel}</strong>
@@ -119,6 +121,7 @@ export function ExecutiveOverview() {
             <p>{overview.clients.length} clientes monitorados.</p>
           </div>
           <ul className="simple-list">
+            {overview.clients.length === 0 ? <li><strong>Nenhum cliente liberado</strong><span>Confirme o acesso do usuário logado ou importe clientes para staging.</span></li> : null}
             {overview.clients.map((client) => (
               <li key={client.clientId}>
                 <strong>{client.clientName}</strong>
@@ -137,6 +140,7 @@ export function ExecutiveOverview() {
             <p>Recomendações prontas para avanço operacional.</p>
           </div>
           <ul className="simple-list">
+            {overview.actions.length === 0 ? <li><strong>Nenhuma ação aprovada</strong><span>A Central de Ações será populada após a primeira carga operacional.</span></li> : null}
             {overview.actions.filter((action) => action.status === "approved").concat(overview.actions).slice(0, 3).map((action) => (
               <li key={action.id}>
                 <strong>{action.title}</strong>

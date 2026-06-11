@@ -30,6 +30,16 @@ VITE_SUPABASE_ANON_KEY=SUA_ANON_KEY
 
 Nunca configurar `service_role` na Vercel.
 
+Com `VITE_DATA_MODE=supabase`, o frontend:
+
+- mostra login Supabase se não houver sessão;
+- usa apenas URL e anon key públicas;
+- carrega profile e memberships do usuário autenticado;
+- lê clientes, fontes de dados, métricas e ações recomendadas do Supabase;
+- mostra estados vazios seguros quando ainda não houver dados ou acesso liberado.
+
+Se `VITE_DATA_MODE=supabase` estiver ativo sem URL ou anon key, o app mostra aviso de configuração em vez de voltar silenciosamente para mocks.
+
 Variáveis que não devem ser configuradas na Vercel client:
 
 - `SUPABASE_SERVICE_ROLE_KEY`

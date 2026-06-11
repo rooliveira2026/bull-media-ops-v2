@@ -1,13 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../shared/api/supabase-client";
-import { shouldUseSupabase } from "../shared/config/env";
+import { getSupabaseConfigurationError, isSupabaseMode as readSupabaseMode } from "../shared/config/env";
+import type { Membership, Profile } from "../shared/types/core";
 
 interface AuthContextValue {
   isSupabaseMode: boolean;
   isLoading: boolean;
   session: Session | null;
   user: SupabaseUser | null;
+  profile: Profile | null;
+  memberships: Membership[];
+  configurationError: string | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -15,9 +19,12 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const isSupabaseMode = shouldUseSupabase();
+  const isSupabaseMode = readSupabaseMode();
+  const configurationError = getSupabaseConfigurationError();
   const [isLoading, setIsLoading] = useState(isSupabaseMode);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
 
   useEffect(() => {
     if (!isSupabaseMode) {
@@ -32,11 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      setIsLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        setSession(data.session);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.warn("[auth] sessão indisponível:", error);
+        if (mounted) setIsLoading(false);
+      });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
@@ -49,11 +61,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isSupabaseMode]);
 
+  useEffect(() => {
+    if (!isSupabaseMode || !session?.user) {
+      setProfile(null);
+      setMemberships([]);
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    let mounted = true;
+    async function loadAccountContext() {
+      const [profileResult, membershipsResult] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle(),
+        supabase.from("memberships").select("*").eq("profile_id", session.user.id).order("created_at"),
+      ]);
+
+      if (!mounted) return;
+      if (profileResult.error) {
+        console.warn("[auth] profile indisponível:", profileResult.error);
+      } else {
+        const row = profileResult.data;
+        setProfile(row ? {
+          id: row.id,
+          email: row.email,
+          name: row.name ?? row.email,
+          avatarUrl: row.avatar_url ?? null,
+          status: row.status,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        } : null);
+      }
+
+      if (membershipsResult.error) {
+        console.warn("[auth] memberships indisponíveis:", membershipsResult.error);
+      } else {
+        setMemberships((membershipsResult.data ?? []).map((row) => ({
+          id: row.id,
+          organizationId: row.organization_id,
+          profileId: row.profile_id,
+          status: row.status,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        })));
+      }
+    }
+
+    loadAccountContext().catch((error) => {
+      console.warn("[auth] contexto de conta indisponível:", error);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [isSupabaseMode, session?.user]);
+
   const value = useMemo<AuthContextValue>(() => ({
     isSupabaseMode,
     isLoading,
     session,
     user: session?.user ?? null,
+    profile,
+    memberships,
+    configurationError,
     async signIn(email, password) {
       const supabase = getSupabaseClient();
       if (!supabase) return { error: "Supabase não está configurado." };
@@ -65,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!supabase) return;
       await supabase.auth.signOut();
     },
-  }), [isLoading, isSupabaseMode, session]);
+  }), [configurationError, isLoading, isSupabaseMode, memberships, profile, session]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

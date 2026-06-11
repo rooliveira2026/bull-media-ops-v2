@@ -44,10 +44,19 @@ function renderRoute(route: RouteKey) {
 
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>("executive");
-  const { isLoading, isSupabaseMode, session } = useAuth();
+  const { configurationError, isLoading, isSupabaseMode, session } = useAuth();
 
   if (isSupabaseMode && isLoading) {
     return <div className="app-loading">Carregando sessão...</div>;
+  }
+
+  if (isSupabaseMode && configurationError) {
+    return (
+      <div className="app-loading app-loading--error">
+        <strong>Configuração Supabase incompleta</strong>
+        <span>{configurationError}</span>
+      </div>
+    );
   }
 
   if (isSupabaseMode && !session) {
