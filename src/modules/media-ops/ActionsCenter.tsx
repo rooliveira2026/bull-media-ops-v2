@@ -171,6 +171,12 @@ export function ActionsCenter() {
       </div>
 
       <div className="action-list">
+        {actions.length === 0 ? (
+          <div className="empty-panel">
+            <h2>Nenhuma ação encontrada</h2>
+            <p>Ajuste os filtros ou execute a primeira importação controlada para popular a Central de Ações.</p>
+          </div>
+        ) : null}
         {actions.map((action) => (
           <article className="action-card action-card--dense" key={action.id}>
             <div className="action-card__main">

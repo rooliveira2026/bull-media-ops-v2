@@ -45,6 +45,13 @@ As migrations aplicam:
 - Social Ops
 - Persistência staging
 - Auth trigger e RLS mínima segura
+<<<<<<< Updated upstream
+=======
+- Data Sources foundation
+- Import batches
+- Data quality logs
+- First real import workflow
+>>>>>>> Stashed changes
 
 ## 4. Criar usuário admin inicial
 
@@ -131,3 +138,40 @@ Regras principais:
 - Apps Script
 - Publicação automática
 - PDM e relatórios reais
+<<<<<<< Updated upstream
+=======
+
+## 9. Importação V1 controlada
+
+A ponte V1 deve usar JSON exportado, normalizado e agrupado antes de persistir em Supabase.
+
+Arquivos de referência:
+
+```text
+src/importers/v1/fixtures/sample-v1-export.json
+src/importers/v1/import-v1-export.ts
+src/importers/v1/normalizers.ts
+scripts/import-v1/run-import-v1-export.mjs
+docs/first-real-import-runbook.md
+```
+
+Não conectar o frontend diretamente ao Apps Script ou à planilha.
+
+### Dry-run local
+
+```bash
+npm run import:v1 -- --file /caminho/seguro/export-v1.json --dry-run
+```
+
+### Execução em staging
+
+Use `SUPABASE_SERVICE_ROLE_KEY` somente em terminal local seguro ou job server-side controlado:
+
+```bash
+export SUPABASE_URL=https://SEU-PROJETO.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=SUA_SERVICE_ROLE_KEY
+npm run import:v1 -- --file /caminho/seguro/export-v1.json
+```
+
+Nunca configurar `SUPABASE_SERVICE_ROLE_KEY` no frontend, Vercel client env ou Lovable.
+>>>>>>> Stashed changes
