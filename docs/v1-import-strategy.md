@@ -18,12 +18,20 @@ Google Ads, Meta, GA4, LinkedIn e ClickUp exigem OAuth, escopos, contas, rate li
 
 ## Como Rodar Importação em Staging
 
+O importador runtime está em:
+
+```text
+scripts/import-v1/run-import-v1-export.mjs
+```
+
+Os normalizadores TypeScript de referência continuam em:
 Nesta sprint, o importador está em:
 
 ```text
 src/importers/v1/
 ```
 
+Fixture de forma:
 Fixture:
 
 ```text
@@ -34,6 +42,12 @@ Fluxo esperado para uma automação futura:
 
 ```text
 JSON V1 -> normalizeV1Export -> Supabase import_batches -> tabelas normalizadas
+```
+
+Para a primeira carga real, seguir:
+
+```text
+docs/first-real-import-runbook.md
 ```
 
 ## Normalizadores
@@ -96,6 +110,21 @@ Usar:
 - action group id
 
 Se o mesmo checksum já estiver completo, o job futuro deve pular ou rodar em modo de atualização idempotente.
+
+## Tabelas Gravadas na Primeira Carga Real
+
+- `data_sources`
+- `import_batches`
+- `clients`
+- `client_channels`
+- `media_metrics_daily`
+- `recommended_actions`
+- `reports`
+- `pdm_plans`
+- `client_intelligence`
+- `data_quality_logs`
+
+O export real da V1 não deve ser commitado. A V2 deve consumir apenas os dados já normalizados no Supabase.
 
 ## Voltar para Mock
 

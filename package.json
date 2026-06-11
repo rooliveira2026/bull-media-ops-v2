@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "import:v1": "node scripts/import-v1/run-import-v1-export.mjs",
+    "import:v1:dry-run": "node scripts/import-v1/run-import-v1-export.mjs --file src/importers/v1/fixtures/sample-v1-export.json --dry-run",
     "preview": "vite preview"
   },
   "dependencies": {
