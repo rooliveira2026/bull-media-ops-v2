@@ -113,17 +113,8 @@ const emptyRepository: CoreRepository = {
   async listIntegrationConnections() {
     return [];
   },
-<<<<<<< Updated upstream
-  async createAuditLog(event) {
-    return {
-      id: `audit_local_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      ...event,
-    };
-=======
   async createAuditLog() {
     throw new Error("Supabase indisponível para registrar auditoria.");
->>>>>>> Stashed changes
   },
   async listAuditLogs() {
     return [];
