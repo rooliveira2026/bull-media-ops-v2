@@ -1,6 +1,7 @@
 import { createAuditEvent } from "../../../shared/audit/audit";
 import { mockClients } from "../../../shared/api/mock-data";
 import { getSupabaseClient } from "../../../shared/api/supabase-client";
+import { isSupabaseMode } from "../../../shared/config/env";
 import { listAuditLogs } from "../../core/api/core-repository";
 import { mockV1MediaRows, normalizeV1MediaRowsToV2 } from "../importers/v1-importer";
 import type {
@@ -18,7 +19,7 @@ import type {
   RecommendedActionPriority,
   RecommendedActionStatus,
 } from "../types";
-import type { AuditLog, ModuleAction } from "../../../shared/types/core";
+import type { AuditLog, Client, ModuleAction } from "../../../shared/types/core";
 
 interface OverviewParams {
   period?: MediaPeriod;
@@ -238,12 +239,57 @@ function mapActionExecution(row: Record<string, any>): ActionExecution {
   };
 }
 
+function mapMediaMetric(row: Record<string, any>): MediaMetricDaily {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    clientId: row.client_id,
+    campaignId: row.campaign_id ?? null,
+    date: row.date,
+    periodKey: row.period_key ?? "current_month",
+    sourcePlatform: row.source_platform ?? "",
+    channel: row.channel ?? "",
+    campaignName: row.campaign_name ?? "Consolidado",
+    impressions: Number(row.impressions ?? 0),
+    clicks: Number(row.clicks ?? 0),
+    cost: Number(row.cost ?? 0),
+    conversions: Number(row.conversions ?? 0),
+    conversionValue: Number(row.conversion_value ?? 0),
+    revenue: Number(row.revenue ?? 0),
+    cpc: Number(row.cpc ?? 0),
+    cpa: Number(row.cpa ?? 0),
+    ctr: Number(row.ctr ?? 0),
+    roas: Number(row.roas ?? 0),
+    rawSource: row.raw_source ?? "supabase",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapClient(row: Record<string, any>): Client {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    clientId: row.client_id,
+    name: row.name,
+    status: row.status,
+    primaryObjective: row.primary_objective ?? "",
+    businessModel: row.business_model ?? "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 async function withMockFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
   const supabase = getSupabaseClient();
   if (!supabase) return fallback();
   try {
     return await callback();
   } catch (error) {
+    if (isSupabaseMode()) {
+      console.warn("[supabase:media_ops] leitura indisponível; retornando estado vazio:", error);
+      return fallback();
+    }
     console.warn("[supabase:media_ops] fallback para mock:", error);
     return fallback();
   }
@@ -272,6 +318,35 @@ async function selectRecommendedActions(filters: ActionFilters = {}) {
   const { data, error } = await query;
   assertNoError(error);
   return (data ?? []).map(mapRecommendedAction);
+}
+
+async function selectMediaMetrics(period: MediaPeriod) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  let query = supabase
+    .from("media_metrics_daily")
+    .select("*")
+    .order("date", { ascending: false });
+
+  query = period === "last_30d" ? query.in("period_key", ["last_30d", "current_month"]) : query.eq("period_key", period);
+
+  const { data, error } = await query;
+  assertNoError(error);
+  return (data ?? []).map(mapMediaMetric);
+}
+
+async function selectMediaClients() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .order("name");
+
+  assertNoError(error);
+  return (data ?? []).map(mapClient);
 }
 
 function sum(rows: MediaMetricDaily[], key: "cost" | "conversions" | "revenue" | "clicks" | "impressions") {
@@ -303,8 +378,12 @@ function summarizeChannel(rows: MediaMetricDaily[]): ChannelSummary[] {
     .sort((a, b) => b.cost - a.cost);
 }
 
-function summarizeClients(rows: MediaMetricDaily[], currentActions = actions): ClientMediaSummary[] {
-  return mockClients.map((client) => {
+function summarizeClients(
+  rows: MediaMetricDaily[],
+  currentActions = actions,
+  clientList: Pick<Client, "id" | "name">[] = mockClients,
+): ClientMediaSummary[] {
+  return clientList.map((client) => {
     const clientRows = rows.filter((row) => row.clientId === client.id);
     const cost = sum(clientRows, "cost");
     const conversions = sum(clientRows, "conversions");
@@ -346,13 +425,21 @@ function rowsForPeriod(period: MediaPeriod) {
 
 export async function getMediaOverview(params: OverviewParams = {}): Promise<MediaOverview> {
   const period = params.period ?? "last_30d";
-  const rows = rowsForPeriod(period);
-  const currentActions = await listRecommendedActions();
+  const [supabaseRows, supabaseClients, currentActions] = await Promise.all([
+    isSupabaseMode()
+      ? withMockFallback(() => selectMediaMetrics(period), () => Promise.resolve<MediaMetricDaily[] | null>([]))
+      : Promise.resolve<MediaMetricDaily[] | null>(null),
+    isSupabaseMode()
+      ? withMockFallback(() => selectMediaClients(), () => Promise.resolve<Client[] | null>([]))
+      : Promise.resolve<Client[] | null>(null),
+    listRecommendedActions(),
+  ]);
+  const rows = supabaseRows ?? rowsForPeriod(period);
   const cost = sum(rows, "cost");
   const conversions = sum(rows, "conversions");
   const revenue = sum(rows, "revenue");
   const topChannels = summarizeChannel(rows);
-  const clients = summarizeClients(rows, currentActions);
+  const clients = summarizeClients(rows, currentActions, supabaseClients ?? mockClients);
 
   return {
     period,
@@ -376,19 +463,28 @@ export async function getMediaOverview(params: OverviewParams = {}): Promise<Med
 
 export async function getClientMediaSummary(clientId: string, period: MediaPeriod = "last_30d") {
   const currentActions = await listRecommendedActions();
-  return summarizeClients(rowsForPeriod(period), currentActions).find((client) => client.clientId === clientId) ?? null;
+  const rows = isSupabaseMode()
+    ? (await withMockFallback(() => selectMediaMetrics(period), () => Promise.resolve<MediaMetricDaily[] | null>([])) ?? [])
+    : rowsForPeriod(period);
+  const clients = isSupabaseMode()
+    ? (await withMockFallback(() => selectMediaClients(), () => Promise.resolve<Client[] | null>([])) ?? [])
+    : mockClients;
+  return summarizeClients(rows, currentActions, clients).find((client) => client.clientId === clientId) ?? null;
 }
 
 export async function getChannelSummary(clientId?: string, period: MediaPeriod = "last_30d") {
-  const rows = rowsForPeriod(period).filter((row) => !clientId || row.clientId === clientId);
+  const periodRows = isSupabaseMode()
+    ? (await withMockFallback(() => selectMediaMetrics(period), () => Promise.resolve<MediaMetricDaily[] | null>([])) ?? [])
+    : rowsForPeriod(period);
+  const rows = periodRows.filter((row) => !clientId || row.clientId === clientId);
   return summarizeChannel(rows);
 }
 
 export async function listRecommendedActions(filters: ActionFilters = {}) {
   return withMockFallback(async () => {
     const result = await selectRecommendedActions(filters);
-    return result ?? listRecommendedActionsMock(filters);
-  }, () => Promise.resolve(listRecommendedActionsMock(filters)));
+    return result ?? (isSupabaseMode() ? [] : listRecommendedActionsMock(filters));
+  }, () => Promise.resolve(isSupabaseMode() ? [] : listRecommendedActionsMock(filters)));
 }
 
 function listRecommendedActionsMock(filters: ActionFilters = {}) {

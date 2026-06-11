@@ -9,6 +9,7 @@ import {
   mockUsers,
 } from "../../../shared/api/mock-data";
 import { getSupabaseClient } from "../../../shared/api/supabase-client";
+import { isSupabaseMode } from "../../../shared/config/env";
 import type {
   AuditLog,
   Client,
@@ -81,6 +82,46 @@ const mockRepository: CoreRepository = {
       const entityIdMatches = !filters.entityId || event.entityId === filters.entityId;
       return entityTypeMatches && entityIdMatches;
     });
+  },
+};
+
+const emptyRepository: CoreRepository = {
+  async listOrganizations() {
+    return [];
+  },
+  async listClients() {
+    return [];
+  },
+  async getClientById() {
+    return null;
+  },
+  async listProfiles() {
+    return [];
+  },
+  async listRoles() {
+    return [];
+  },
+  async listModules() {
+    return [];
+  },
+  async listClientAccess() {
+    return [];
+  },
+  async listDataSources() {
+    return [];
+  },
+  async listIntegrationConnections() {
+    return [];
+  },
+  async createAuditLog(event) {
+    return {
+      id: `audit_local_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      ...event,
+    };
+  },
+  async listAuditLogs() {
+    return [];
   },
 };
 
@@ -197,6 +238,10 @@ async function queryWithFallback<T>(callback: () => Promise<T>, fallback: () => 
   try {
     return await callback();
   } catch (error) {
+    if (isSupabaseMode()) {
+      console.warn("[supabase] leitura indisponível; retornando estado vazio:", error);
+      return fallback();
+    }
     console.warn("[supabase] fallback para mock:", error);
     return fallback();
   }
@@ -306,48 +351,48 @@ const supabaseRepository: CoreRepository = {
 };
 
 export async function listOrganizations(): Promise<Organization[]> {
-  return queryWithFallback(() => supabaseRepository.listOrganizations(), () => mockRepository.listOrganizations());
+  return queryWithFallback(() => supabaseRepository.listOrganizations(), () => isSupabaseMode() ? emptyRepository.listOrganizations() : mockRepository.listOrganizations());
 }
 
 export async function listClients(): Promise<Client[]> {
-  return queryWithFallback(() => supabaseRepository.listClients(), () => mockRepository.listClients());
+  return queryWithFallback(() => supabaseRepository.listClients(), () => isSupabaseMode() ? emptyRepository.listClients() : mockRepository.listClients());
 }
 
 export async function getClientById(id: string): Promise<Client | null> {
-  return queryWithFallback(() => supabaseRepository.getClientById(id), () => mockRepository.getClientById(id));
+  return queryWithFallback(() => supabaseRepository.getClientById(id), () => isSupabaseMode() ? emptyRepository.getClientById(id) : mockRepository.getClientById(id));
 }
 
 export async function listProfiles(): Promise<User[]> {
-  return queryWithFallback(() => supabaseRepository.listProfiles(), () => mockRepository.listProfiles());
+  return queryWithFallback(() => supabaseRepository.listProfiles(), () => isSupabaseMode() ? emptyRepository.listProfiles() : mockRepository.listProfiles());
 }
 
 export async function listRoles(): Promise<Role[]> {
-  return queryWithFallback(() => supabaseRepository.listRoles(), () => mockRepository.listRoles());
+  return queryWithFallback(() => supabaseRepository.listRoles(), () => isSupabaseMode() ? emptyRepository.listRoles() : mockRepository.listRoles());
 }
 
 export async function listModules(): Promise<Module[]> {
-  return queryWithFallback(() => supabaseRepository.listModules(), () => mockRepository.listModules());
+  return queryWithFallback(() => supabaseRepository.listModules(), () => isSupabaseMode() ? emptyRepository.listModules() : mockRepository.listModules());
 }
 
 export async function listClientAccess(): Promise<ClientAccess[]> {
-  return queryWithFallback(() => supabaseRepository.listClientAccess(), () => mockRepository.listClientAccess());
+  return queryWithFallback(() => supabaseRepository.listClientAccess(), () => isSupabaseMode() ? emptyRepository.listClientAccess() : mockRepository.listClientAccess());
 }
 
 export async function listDataSources(): Promise<DataSource[]> {
-  return queryWithFallback(() => supabaseRepository.listDataSources(), () => mockRepository.listDataSources());
+  return queryWithFallback(() => supabaseRepository.listDataSources(), () => isSupabaseMode() ? emptyRepository.listDataSources() : mockRepository.listDataSources());
 }
 
 export async function listIntegrationConnections(): Promise<IntegrationConnection[]> {
   return queryWithFallback(
     () => supabaseRepository.listIntegrationConnections(),
-    () => mockRepository.listIntegrationConnections(),
+    () => isSupabaseMode() ? emptyRepository.listIntegrationConnections() : mockRepository.listIntegrationConnections(),
   );
 }
 
 export async function createAuditLog(event: Omit<AuditLog, "id" | "createdAt">): Promise<AuditLog> {
-  return queryWithFallback(() => supabaseRepository.createAuditLog(event), () => mockRepository.createAuditLog(event));
+  return queryWithFallback(() => supabaseRepository.createAuditLog(event), () => isSupabaseMode() ? emptyRepository.createAuditLog(event) : mockRepository.createAuditLog(event));
 }
 
 export async function listAuditLogs(filters: { entityType?: string; entityId?: string } = {}): Promise<AuditLog[]> {
-  return queryWithFallback(() => supabaseRepository.listAuditLogs(filters), () => mockRepository.listAuditLogs(filters));
+  return queryWithFallback(() => supabaseRepository.listAuditLogs(filters), () => isSupabaseMode() ? emptyRepository.listAuditLogs(filters) : mockRepository.listAuditLogs(filters));
 }

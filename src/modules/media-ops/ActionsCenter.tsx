@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, CheckCircle2, ClipboardCheck, Eye, Search, ShieldCheck } from "lucide-react";
-import { mockClients, mockModuleAccess, mockRoles, mockUsers } from "../../shared/api/mock-data";
+import { useAuth } from "../../auth/AuthProvider";
+import { mockModuleAccess, mockRoles, mockUsers } from "../../shared/api/mock-data";
 import { KpiCard } from "../../shared/components/KpiCard";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { canPerformModuleAction } from "../../shared/permissions/permissions";
 import { decimal } from "../../shared/utils/format";
+import { listClients } from "../core/api/core-repository";
 import {
   approveRecommendedAction,
   dismissRecommendedAction,
@@ -23,7 +25,7 @@ import type {
   RecommendedActionPriority,
   RecommendedActionStatus,
 } from "./types";
-import type { AuditLog, ModuleAction } from "../../shared/types/core";
+import type { AuditLog, Client, ModuleAction } from "../../shared/types/core";
 
 const statusLabels: Record<RecommendedActionStatus, string> = {
   suggested: "Sugerida",
@@ -49,6 +51,7 @@ function can(actionKey: ModuleAction) {
 }
 
 export function ActionsCenter() {
+  const { user } = useAuth();
   const [actions, setActions] = useState<RecommendedAction[]>([]);
   const [selectedAction, setSelectedAction] = useState<RecommendedAction | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
@@ -58,6 +61,12 @@ export function ActionsCenter() {
   const [status, setStatus] = useState<RecommendedActionStatus | "all">("all");
   const [platform, setPlatform] = useState("all");
   const [search, setSearch] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const currentProfileId = user?.id ?? currentUser.id;
+
+  useEffect(() => {
+    listClients().then(setClients);
+  }, []);
 
   async function refreshActions() {
     const data = await listRecommendedActions({
@@ -103,43 +112,43 @@ export function ActionsCenter() {
       case "suggested":
         return (
           <>
-            <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => moveActionToReview(action.id, { profileId: currentUser.id, note: "Ação em avaliação pelo time." }))}>Avaliar</ActionButton>
-            <ActionButton disabled={!can("approve_recommended_action")} onClick={() => runTransition(() => approveRecommendedAction(action.id, { profileId: currentUser.id, curationNote: "Aprovada para próxima etapa." }))}>Aprovar</ActionButton>
-            <ActionButton disabled={!can("dismiss_recommended_action")} onClick={() => runTransition(() => dismissRecommendedAction(action.id, "Ação descartada após curadoria.", currentUser.id))}>Descartar</ActionButton>
+            <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => moveActionToReview(action.id, { profileId: currentProfileId, note: "Ação em avaliação pelo time." }))}>Avaliar</ActionButton>
+            <ActionButton disabled={!can("approve_recommended_action")} onClick={() => runTransition(() => approveRecommendedAction(action.id, { profileId: currentProfileId, curationNote: "Aprovada para próxima etapa." }))}>Aprovar</ActionButton>
+            <ActionButton disabled={!can("dismiss_recommended_action")} onClick={() => runTransition(() => dismissRecommendedAction(action.id, "Ação descartada após curadoria.", currentProfileId))}>Descartar</ActionButton>
           </>
         );
       case "in_review":
         return (
           <>
-            <ActionButton disabled={!can("approve_recommended_action")} onClick={() => runTransition(() => approveRecommendedAction(action.id, { profileId: currentUser.id, curationNote: "Aprovada após avaliação interna." }))}>Aprovar</ActionButton>
-            <ActionButton disabled={!can("dismiss_recommended_action")} onClick={() => runTransition(() => dismissRecommendedAction(action.id, "Ação sem prioridade no ciclo atual.", currentUser.id))}>Descartar</ActionButton>
-            <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => moveActionToReview(action.id, { profileId: currentUser.id, note: "Observação atualizada na curadoria." }))}>Editar observação</ActionButton>
+            <ActionButton disabled={!can("approve_recommended_action")} onClick={() => runTransition(() => approveRecommendedAction(action.id, { profileId: currentProfileId, curationNote: "Aprovada após avaliação interna." }))}>Aprovar</ActionButton>
+            <ActionButton disabled={!can("dismiss_recommended_action")} onClick={() => runTransition(() => dismissRecommendedAction(action.id, "Ação sem prioridade no ciclo atual.", currentProfileId))}>Descartar</ActionButton>
+            <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => moveActionToReview(action.id, { profileId: currentProfileId, note: "Observação atualizada na curadoria." }))}>Editar observação</ActionButton>
           </>
         );
       case "approved":
         return (
           <>
-            <ActionButton disabled={!can("execute_recommended_action")} onClick={() => runTransition(() => executeRecommendedAction(action.id, { profileId: currentUser.id, executedBy: currentUser.id, executionNote: "Ação executada em ambiente mock.", recheckAt: "2026-06-23T12:00:00.000Z" }))}>Marcar como executada</ActionButton>
-            <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => moveActionToReview(action.id, { profileId: currentUser.id, note: "Ação voltou para avaliação." }))}>Voltar para avaliação</ActionButton>
+            <ActionButton disabled={!can("execute_recommended_action")} onClick={() => runTransition(() => executeRecommendedAction(action.id, { profileId: currentProfileId, executedBy: currentProfileId, executionNote: "Ação executada pela plataforma.", recheckAt: "2026-06-23T12:00:00.000Z" }))}>Marcar como executada</ActionButton>
+            <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => moveActionToReview(action.id, { profileId: currentProfileId, note: "Ação voltou para avaliação." }))}>Voltar para avaliação</ActionButton>
           </>
         );
       case "executed":
         return (
           <>
-            <ActionButton disabled={!can("mark_action_monitoring")} onClick={() => runTransition(() => markActionMonitoring(action.id, { profileId: currentUser.id, impactAssessment: "Acompanhar variação da métrica nos próximos dias.", recheckAt: "2026-06-30T12:00:00.000Z" }))}>Colocar em monitoramento</ActionButton>
+            <ActionButton disabled={!can("mark_action_monitoring")} onClick={() => runTransition(() => markActionMonitoring(action.id, { profileId: currentProfileId, impactAssessment: "Acompanhar variação da métrica nos próximos dias.", recheckAt: "2026-06-30T12:00:00.000Z" }))}>Colocar em monitoramento</ActionButton>
             <ActionButton onClick={() => { setSelectedAction(action); setActiveTab("history"); }}>Ver histórico</ActionButton>
           </>
         );
       case "monitoring":
         return (
           <>
-            <ActionButton disabled={!can("register_action_result")} onClick={() => runTransition(() => registerActionResult(action.id, { profileId: currentUser.id, impactAssessment: "Resultado registrado para fechamento do ciclo.", afterValue: action.beforeValue ? action.beforeValue * 0.92 : null }))}>Registrar resultado</ActionButton>
-            <ActionButton disabled={!can("register_action_result")} onClick={() => runTransition(() => registerActionResult(action.id, { profileId: currentUser.id, impactAssessment: "Monitoramento encerrado com aprendizado documentado." }))}>Encerrar monitoramento</ActionButton>
+            <ActionButton disabled={!can("register_action_result")} onClick={() => runTransition(() => registerActionResult(action.id, { profileId: currentProfileId, impactAssessment: "Resultado registrado para fechamento do ciclo.", afterValue: action.beforeValue ? action.beforeValue * 0.92 : null }))}>Registrar resultado</ActionButton>
+            <ActionButton disabled={!can("register_action_result")} onClick={() => runTransition(() => registerActionResult(action.id, { profileId: currentProfileId, impactAssessment: "Monitoramento encerrado com aprendizado documentado." }))}>Encerrar monitoramento</ActionButton>
           </>
         );
       case "dismissed":
         return (
-          <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => reopenRecommendedAction(action.id, "Ação reaberta para avaliação.", currentUser.id))}>Reabrir avaliação</ActionButton>
+          <ActionButton disabled={!can("move_action_to_review")} onClick={() => runTransition(() => reopenRecommendedAction(action.id, "Ação reaberta para avaliação.", currentProfileId))}>Reabrir avaliação</ActionButton>
         );
     }
   }
@@ -162,7 +171,7 @@ export function ActionsCenter() {
       </div>
 
       <div className="filter-bar">
-        <label><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="all">Todos</option>{mockClients.map((client) => <option value={client.id} key={client.id}>{client.name}</option>)}</select></label>
+        <label><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="all">Todos</option>{clients.map((client) => <option value={client.id} key={client.id}>{client.name}</option>)}</select></label>
         <label><span>Canal</span><select value={channel} onChange={(event) => setChannel(event.target.value)}><option value="all">Todos</option>{channels.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
         <label><span>Prioridade</span><select value={priority} onChange={(event) => setPriority(event.target.value as RecommendedActionPriority | "all")}><option value="all">Todas</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label>
         <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as RecommendedActionStatus | "all")}><option value="all">Todos</option>{Object.entries(statusLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>
