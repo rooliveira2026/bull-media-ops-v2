@@ -1,10 +1,6 @@
 import { Activity, Command } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
-<<<<<<< Updated upstream
-import { runtimeEnvDiagnostics } from "../shared/config/env";
-=======
 import { RuntimeEnvBadge } from "../shared/components/RuntimeEnvBadge";
->>>>>>> Stashed changes
 import { navItems, type RouteKey } from "./navigation";
 
 interface AppShellProps {
@@ -33,6 +29,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = item.key === activeRoute;
+
             return (
               <button
                 key={item.key}
@@ -59,31 +56,27 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
             <span className="topbar__label">Bull Digital</span>
             <strong>Marketing Operations Platform</strong>
           </div>
+
           <div className="topbar__actions">
             <div className="topbar__status">
               <span />
-              {isSupabaseMode ? "Ambiente conectado" : "Ambiente de demonstração"}
+              {isSupabaseMode ? "Supabase staging" : "Ambiente de demonstração"}
             </div>
+
             {isSupabaseMode ? (
               <button className="topbar__logout" onClick={signOut} type="button">
-                Sair{profile?.name || user?.email ? ` · ${profile?.name ?? user?.email}` : ""}{memberships.length ? ` · ${memberships.length} org` : ""}
+                Sair
+                {profile?.name || user?.email ? ` · ${profile?.name ?? user?.email}` : ""}
+                {memberships.length ? ` · ${memberships.length} org` : ""}
               </button>
             ) : null}
           </div>
         </div>
+
         <div className="content">{children}</div>
       </main>
-<<<<<<< Updated upstream
-      <div className="runtime-env-badge" aria-label="Diagnóstico seguro de ambiente">
-        <span>mode: {runtimeEnvDiagnostics.dataMode}</span>
-        <span>raw: {runtimeEnvDiagnostics.rawDataMode || "empty"}</span>
-        <span>url: {runtimeEnvDiagnostics.hasSupabaseUrl ? "ok" : "missing"}</span>
-        <span>anon: {runtimeEnvDiagnostics.hasSupabaseAnonKey ? "ok" : "missing"}</span>
-        <span>prod: {runtimeEnvDiagnostics.isProduction ? "yes" : "no"}</span>
-      </div>
-=======
+
       <RuntimeEnvBadge />
->>>>>>> Stashed changes
     </div>
   );
 }

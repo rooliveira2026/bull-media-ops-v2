@@ -282,7 +282,10 @@ function mapClient(row: Record<string, any>): Client {
 
 async function withMockFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
   const supabase = getSupabaseClient();
-  if (!supabase) return fallback();
+  if (!supabase) {
+    if (isSupabaseMode()) throw new Error("Supabase indisponível.");
+    return fallback();
+  }
   try {
     return await callback();
   } catch (error) {
@@ -528,6 +531,14 @@ export async function getChannelSummary(clientId?: string, period: MediaPeriod =
 }
 
 export async function listRecommendedActions(filters: ActionFilters = {}) {
+  if (isSupabaseMode()) {
+    try {
+      return await selectRecommendedActions(filters) ?? [];
+    } catch (error) {
+      console.warn("[supabase:media_ops] ações indisponíveis; retornando vazio:", error);
+      return [];
+    }
+  }
   return withMockFallback(async () => {
     const result = await selectRecommendedActions(filters);
     return result ?? (isSupabaseMode() ? [] : listRecommendedActionsMock(filters));

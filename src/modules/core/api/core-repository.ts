@@ -239,7 +239,7 @@ function mapAuditLog(row: Record<string, any>): AuditLog {
 
 async function queryWithFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
   const supabase = getSupabaseClient();
-  if (!supabase) return fallback();
+  if (!supabase) return isSupabaseMode() ? fallback() : fallback();
   try {
     return await callback();
   } catch (error) {
