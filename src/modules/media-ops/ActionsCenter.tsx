@@ -149,8 +149,8 @@ export function ActionsCenter() {
       <PageHeader
         eyebrow="Media Ops"
         title="Central de Ações"
-        description="Fluxo operacional de curadoria, aprovação, execução, monitoramento e auditoria."
-        meta="Sprint 3"
+        description="Curadoria de recomendações estratégicas com priorização, aprovação e execução acompanhada."
+        meta="Operação"
       />
 
       <div className="kpi-grid kpi-grid--compact">
@@ -183,8 +183,10 @@ export function ActionsCenter() {
             </div>
             <div className="action-card__meta">
               <span className={`badge badge--priority-${action.priority}`}>{priorityLabels[action.priority]}</span>
+              <span>{action.recommendationType ?? "Recomendação estratégica"}</span>
               <span>{action.expectedImpact}</span>
-              <span>Confiança {action.confidence !== null ? Math.round(action.confidence * 100) : 0}%</span>
+              <span>Esforço {action.effortLevel ?? "médio"}</span>
+              <span>{action.affectedItemsCount ?? 1} ocorrências agrupadas</span>
               <span>{action.metricImpacted ?? "Métrica a validar"} {action.beforeValue !== null ? decimal(action.beforeValue, action.beforeValue < 1 ? 3 : 2) : ""}</span>
             </div>
             <div className="action-card__next">
@@ -258,7 +260,25 @@ function ActionModal({ action, activeTab, setActiveTab, onClose }: { action: Rec
 }
 
 function SummaryTab({ action }: { action: RecommendedAction }) {
-  return <div className="detail-grid"><Detail label="Descrição" value={action.description} /><Detail label="Impacto esperado" value={action.expectedImpact} /><Detail label="Prioridade" value={priorityLabels[action.priority]} /><Detail label="Canal" value={`${action.channel} · ${action.sourcePlatform}`} /><Detail label="Cliente" value={action.clientName} /><Detail label="Métrica impactada" value={action.metricImpacted ?? "A validar"} /></div>;
+  return (
+    <div className="detail-grid">
+      <Detail label="Descrição" value={action.description} />
+      <Detail label="Impacto esperado" value={action.expectedImpact} />
+      <Detail label="Tipo de recomendação" value={action.recommendationType ?? "Recomendação estratégica"} />
+      <Detail label="Esforço" value={action.effortLevel ?? "médio"} />
+      <Detail label="Responsável pela decisão" value={action.decisionOwner ?? "A definir"} />
+      <Detail label="Ocorrências agrupadas" value={String(action.affectedItemsCount ?? 1)} />
+      <Detail label="Canal" value={`${action.channel} · ${action.sourcePlatform}`} />
+      <Detail label="Cliente" value={action.clientName} />
+      <Detail label="Métrica impactada" value={action.metricImpacted ?? "A validar"} />
+      <div className="detail-item detail-item--full">
+        <span>Ver detalhes</span>
+        <ul className="compact-list">
+          {(action.groupedOccurrences ?? []).map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
 function CurationTab({ action }: { action: RecommendedAction }) {

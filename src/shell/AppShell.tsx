@@ -44,7 +44,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
 
         <div className="sidebar__footer">
           <Command size={16} />
-          <span>Arquitetura modular preparada para Supabase</span>
+          <span>Operação integrada de marketing, mídia e inteligência.</span>
         </div>
       </aside>
 
@@ -57,7 +57,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
           <div className="topbar__actions">
             <div className="topbar__status">
               <span />
-              {isSupabaseMode ? "Supabase staging" : "Mock data"}
+              {isSupabaseMode ? "Ambiente conectado" : "Ambiente de demonstração"}
             </div>
             {isSupabaseMode ? (
               <button className="topbar__logout" onClick={signOut} type="button">

@@ -4,7 +4,7 @@ export function HealthBadge({ status }: { status: HealthStatus }) {
   const label = {
     healthy: "Saudável",
     attention: "Atenção",
-    critical: "Crítico",
+    critical: "Em acompanhamento",
     opportunity: "Oportunidade",
   }[status];
   return <span className={`badge badge--${status}`}>{label}</span>;

@@ -1,6 +1,8 @@
 # Bull Media Ops V2 — Lovable Deployment
 
-Este guia explica como conectar a V2 ao Lovable sem reescrever a arquitetura modular.
+Este guia explica como usar Lovable com a V2 sem reescrever a arquitetura modular.
+
+Importante: a documentacao atual do Lovable pode limitar a importacao direta de repositorios GitHub existentes. Por isso, o caminho recomendado para deploy externo da V2 e Vercel ou Netlify. Lovable deve ser tratado como camada visual/prototipacao, se aplicavel, e nao como origem de uma reescrita da plataforma.
 
 ## 1. Conectar o Repositorio
 
@@ -13,10 +15,12 @@ rooliveira2026/bull-media-ops-v2
 No Lovable:
 
 1. Crie um novo projeto separado da V1.
-2. Conecte o repositorio `bull-media-ops-v2`.
-3. Use a branch `main`.
+2. Se a importacao de repositorio GitHub existente estiver disponivel, conecte `bull-media-ops-v2`.
+3. Use a branch `main` ou uma branch de preview.
 4. Confirme que o projeto usa Vite/React.
 5. Comando de build: `bun run build` ou `npm run build`, conforme runtime disponivel no Lovable.
+
+Se o Lovable nao permitir importar o repo existente, use Vercel/Netlify para deploy e mantenha Lovable apenas para prototipar ajustes visuais que depois serao aplicados no repositorio.
 
 Nao conectar este projeto ao repositorio da V1.
 
@@ -72,12 +76,13 @@ Comportamento esperado:
 
 Evitar alteracoes automaticas nestes arquivos sem sprint tecnica:
 
-- `supabase/migrations/**`
-- `src/shared/api/supabase-client.ts`
-- `src/shared/config/env.ts`
+- `supabase/migrations/*`
+- `src/shared/api/*`
+- `src/modules/*/api/*`
 - `src/auth/AuthProvider.tsx`
-- `src/shared/permissions/**`
-- `src/modules/*/api/**`
+- `src/shared/config/env.ts`
+- `src/shared/permissions/*`
+- `src/shared/audit/*`
 - `src/shared/types/**`
 - `package.json`
 - `bun.lock`
@@ -86,19 +91,25 @@ Evitar alteracoes automaticas nestes arquivos sem sprint tecnica:
 
 Esses arquivos controlam arquitetura, dados, Auth, permissoes e contratos.
 
-## 6. Areas que Podem Ser Ajustadas Visualmente
+## 6. Areas que Podem Receber Ajuste Visual
 
 Com baixo risco, o Lovable pode ajustar:
 
-- `src/styles.css`, mantendo tokens principais;
-- componentes em `src/shared/components/**`;
+- `src/styles.css`
+- componentes visuais em `src/shared/components/**`
+- layout e espacamentos
+- sidebar
+- cards
+- tabelas
+- microcopy
 - composicao visual de paginas em:
   - `src/modules/media-ops/ExecutiveOverview.tsx`
   - `src/modules/media-ops/MediaOpsPage.tsx`
   - `src/modules/media-ops/ActionsCenter.tsx`
   - `src/modules/social-ops/SocialOpsPage.tsx`
   - placeholders dos modulos planejados
-- textos de UI e microcopy, sem alterar contratos de dados.
+
+Esses ajustes nao devem mudar contratos de dados, Auth, RLS, migrations ou repositories.
 
 ## 7. Como Evitar Reescrita da Arquitetura
 
@@ -113,6 +124,8 @@ Ao pedir alteracoes ao Lovable:
 - nao adicionar integracoes externas sem sprint dedicada;
 - nao colocar secrets no codigo;
 - validar build apos cada alteracao.
+
+Lovable nao deve recriar o projeto do zero, trocar o stack, duplicar repositories, criar payload unico ou mover regra de permissao para componentes visuais.
 
 ## 8. Checklist Antes de Publicar
 

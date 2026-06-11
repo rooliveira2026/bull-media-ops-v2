@@ -133,7 +133,7 @@ export function SocialOpsPage() {
         eyebrow="Social Ops"
         title="Calendário editorial"
         description="Base operacional para posts, pilares, status, aprovação e auditoria do calendário social."
-        meta="Sprint 4"
+        meta="Calendário"
       />
 
       <div className="kpi-grid kpi-grid--compact">
@@ -231,7 +231,7 @@ export function SocialOpsPage() {
                 </>
               ) : null}
               {post.status !== "ready" ? <SocialButton disabled={!can("update_social_post_status")} onClick={() => runTransition(() => updateSocialPostStatus(post.id, "ready", { profileId: currentUser.id, note: "Post marcado como pronto." }))}>Marcar pronto</SocialButton> : null}
-              {post.status !== "paused" ? <SocialButton disabled={!can("update_social_post_status")} onClick={() => runTransition(() => updateSocialPostStatus(post.id, "paused", { profileId: currentUser.id, note: "Post pausado para revisão de calendário." }))}>Pausar</SocialButton> : null}
+              {post.status !== "paused" ? <SocialButton disabled={!can("update_social_post_status")} onClick={() => runTransition(() => updateSocialPostStatus(post.id, "paused", { profileId: currentUser.id, note: "Post pausado para ajuste de calendário." }))}>Pausar</SocialButton> : null}
             </div>
           </article>
         ))}
