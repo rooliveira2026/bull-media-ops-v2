@@ -4,19 +4,38 @@ interface ViteEnv {
   VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_ANON_KEY?: string;
   VITE_DATA_MODE?: string;
+  PROD?: boolean;
 }
 
 const env = import.meta.env as unknown as ViteEnv;
-const normalizedDataMode = String(env.VITE_DATA_MODE ?? "mock").trim().toLowerCase();
+
+const supabaseUrl = String(env.VITE_SUPABASE_URL ?? "").trim();
+const supabaseAnonKey = String(env.VITE_SUPABASE_ANON_KEY ?? "").trim();
+const rawDataMode = String(env.VITE_DATA_MODE ?? "").trim().toLowerCase();
+
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
+
+function resolveDataMode(): DataMode {
+  if (rawDataMode === "mock") return "mock";
+  if (rawDataMode === "supabase") return "supabase";
+
+  if (env.PROD && hasSupabaseConfig) {
+    return "supabase";
+  }
+
+  return "mock";
+}
 
 export const appConfig = {
-  supabaseUrl: String(env.VITE_SUPABASE_URL ?? "").trim(),
-  supabaseAnonKey: String(env.VITE_SUPABASE_ANON_KEY ?? "").trim(),
-  dataMode: (normalizedDataMode === "supabase" ? "supabase" : "mock") as DataMode,
+  supabaseUrl,
+  supabaseAnonKey,
+  dataMode: resolveDataMode(),
+  rawDataMode,
+  isProduction: Boolean(env.PROD),
 };
 
 export function isSupabaseConfigured() {
-  return Boolean(appConfig.supabaseUrl && appConfig.supabaseAnonKey);
+  return hasSupabaseConfig;
 }
 
 export function isSupabaseMode() {
@@ -29,5 +48,6 @@ export function shouldUseSupabase() {
 
 export function getSupabaseConfigurationError() {
   if (!isSupabaseMode() || isSupabaseConfigured()) return null;
-  return "VITE_DATA_MODE=supabase exige VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.";
+
+  return "Modo Supabase ativo exige VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.";
 }
