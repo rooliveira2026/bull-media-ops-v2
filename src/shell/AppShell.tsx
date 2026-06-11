@@ -1,9 +1,6 @@
 import { Activity, Command } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
-<<<<<<< Updated upstream
-=======
 import { RuntimeEnvBadge } from "../shared/components/RuntimeEnvBadge";
->>>>>>> Stashed changes
 import { navItems, type RouteKey } from "./navigation";
 
 interface AppShellProps {
@@ -32,6 +29,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = item.key === activeRoute;
+
             return (
               <button
                 key={item.key}
@@ -58,24 +56,27 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
             <span className="topbar__label">Bull Digital</span>
             <strong>Marketing Operations Platform</strong>
           </div>
+
           <div className="topbar__actions">
             <div className="topbar__status">
               <span />
               {isSupabaseMode ? "Supabase staging" : "Ambiente de demonstração"}
             </div>
+
             {isSupabaseMode ? (
               <button className="topbar__logout" onClick={signOut} type="button">
-                Sair{profile?.name || user?.email ? ` · ${profile?.name ?? user?.email}` : ""}{memberships.length ? ` · ${memberships.length} org` : ""}
+                Sair
+                {profile?.name || user?.email ? ` · ${profile?.name ?? user?.email}` : ""}
+                {memberships.length ? ` · ${memberships.length} org` : ""}
               </button>
             ) : null}
           </div>
         </div>
+
         <div className="content">{children}</div>
       </main>
-<<<<<<< Updated upstream
-=======
+
       <RuntimeEnvBadge />
->>>>>>> Stashed changes
     </div>
   );
 }
