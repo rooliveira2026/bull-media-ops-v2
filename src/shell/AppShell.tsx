@@ -75,7 +75,10 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
 
         <div className="content">{children}</div>
       </main>
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
       <RuntimeEnvBadge />
     </div>
   );

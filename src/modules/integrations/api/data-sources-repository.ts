@@ -1,4 +1,3 @@
-import { mockClients } from "../../../shared/api/mock-data";
 import { getSupabaseClient } from "../../../shared/api/supabase-client";
 import { isSupabaseMode } from "../../../shared/config/env";
 import type { DataQualityLog, DataSourcesOverview, ImportBatch, OperationalDataSource, SourceType } from "../types";
