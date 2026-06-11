@@ -9,7 +9,7 @@ interface PlaceholderPageProps {
 export function PlaceholderPage({ module, title, description }: PlaceholderPageProps) {
   return (
     <section>
-      <PageHeader eyebrow={module} title={title} description={description} meta="Sprint 0" />
+      <PageHeader eyebrow={module} title={title} description={description} meta="Planejado" />
       <div className="empty-panel">
         <span>Base modular criada</span>
         <strong>{title}</strong>
