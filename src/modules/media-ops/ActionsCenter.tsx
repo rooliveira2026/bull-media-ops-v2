@@ -61,7 +61,10 @@ export function ActionsCenter() {
   const [status, setStatus] = useState<RecommendedActionStatus | "all">("all");
   const [platform, setPlatform] = useState("all");
   const [search, setSearch] = useState("");
+<<<<<<< Updated upstream
   const [clients, setClients] = useState<Client[]>([]);
+=======
+>>>>>>> Stashed changes
   const currentProfileId = user?.id ?? currentUser.id;
 
   useEffect(() => {

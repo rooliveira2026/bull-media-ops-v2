@@ -1,6 +1,10 @@
 import { Activity, Command } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
+<<<<<<< Updated upstream
 import { runtimeEnvDiagnostics } from "../shared/config/env";
+=======
+import { RuntimeEnvBadge } from "../shared/components/RuntimeEnvBadge";
+>>>>>>> Stashed changes
 import { navItems, type RouteKey } from "./navigation";
 
 interface AppShellProps {
@@ -69,6 +73,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
         </div>
         <div className="content">{children}</div>
       </main>
+<<<<<<< Updated upstream
       <div className="runtime-env-badge" aria-label="Diagnóstico seguro de ambiente">
         <span>mode: {runtimeEnvDiagnostics.dataMode}</span>
         <span>raw: {runtimeEnvDiagnostics.rawDataMode || "empty"}</span>
@@ -76,6 +81,9 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
         <span>anon: {runtimeEnvDiagnostics.hasSupabaseAnonKey ? "ok" : "missing"}</span>
         <span>prod: {runtimeEnvDiagnostics.isProduction ? "yes" : "no"}</span>
       </div>
+=======
+      <RuntimeEnvBadge />
+>>>>>>> Stashed changes
     </div>
   );
 }
