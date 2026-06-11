@@ -913,6 +913,16 @@ td small {
   gap: 14px;
 }
 
+.integration-grid--split {
+  margin-top: 16px;
+}
+
+.simple-list svg {
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--primary);
+}
+
 .field-stack {
   display: grid;
   gap: 6px;

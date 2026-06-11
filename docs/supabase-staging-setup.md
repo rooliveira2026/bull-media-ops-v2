@@ -45,6 +45,9 @@ As migrations aplicam:
 - Social Ops
 - Persistência staging
 - Auth trigger e RLS mínima segura
+- Data Sources foundation
+- Import batches
+- Data quality logs
 
 ## 4. Criar usuário admin inicial
 
@@ -131,3 +134,17 @@ Regras principais:
 - Apps Script
 - Publicação automática
 - PDM e relatórios reais
+
+## 9. Importação V1 controlada
+
+A ponte V1 deve usar JSON exportado, normalizado e agrupado antes de persistir em Supabase.
+
+Arquivos de referência:
+
+```text
+src/importers/v1/fixtures/sample-v1-export.json
+src/importers/v1/import-v1-export.ts
+src/importers/v1/normalizers.ts
+```
+
+Não conectar o frontend diretamente ao Apps Script ou à planilha.
