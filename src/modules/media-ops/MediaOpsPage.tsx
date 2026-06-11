@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, LineChart, MousePointerClick, Target, TrendingUp } from "lucide-react";
-import { mockClients } from "../../shared/api/mock-data";
 import {
   detectClientObjective,
   getClientConfig,
@@ -77,12 +76,18 @@ function buildClientMetrics(client: ClientMediaSummary) {
 export function MediaOpsPage() {
   const [overview, setOverview] = useState<MediaOverview | null>(null);
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState("client_intercity");
+  const [selectedClientId, setSelectedClientId] = useState("");
 
   useEffect(() => {
     getMediaOverview({ period: "last_30d" }).then(setOverview);
     getChannelSummary(undefined, "last_30d").then(setChannels);
   }, []);
+
+  useEffect(() => {
+    if (!selectedClientId && overview?.clients[0]) {
+      setSelectedClientId(overview.clients[0].clientId);
+    }
+  }, [overview, selectedClientId]);
 
   const selectedClient = useMemo(() => {
     return overview?.clients.find((client) => client.clientId === selectedClientId) ?? overview?.clients[0] ?? null;
@@ -107,7 +112,8 @@ export function MediaOpsPage() {
         <label>
           <span>Cliente</span>
           <select value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)}>
-            {mockClients.map((client) => <option value={client.id} key={client.id}>{client.name}</option>)}
+            {overview?.clients.length ? null : <option value="">Nenhum cliente disponível</option>}
+            {overview?.clients.map((client) => <option value={client.clientId} key={client.clientId}>{client.clientName}</option>)}
           </select>
         </label>
         <label>
