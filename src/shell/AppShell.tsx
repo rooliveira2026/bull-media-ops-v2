@@ -1,5 +1,9 @@
 import { Activity, Command } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
+<<<<<<< Updated upstream
+=======
+import { RuntimeEnvBadge } from "../shared/components/RuntimeEnvBadge";
+>>>>>>> Stashed changes
 import { navItems, type RouteKey } from "./navigation";
 
 interface AppShellProps {
@@ -57,7 +61,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
           <div className="topbar__actions">
             <div className="topbar__status">
               <span />
-              {isSupabaseMode ? "Ambiente conectado" : "Ambiente de demonstração"}
+              {isSupabaseMode ? "Supabase staging" : "Ambiente de demonstração"}
             </div>
             {isSupabaseMode ? (
               <button className="topbar__logout" onClick={signOut} type="button">
@@ -68,6 +72,10 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
         </div>
         <div className="content">{children}</div>
       </main>
+<<<<<<< Updated upstream
+=======
+      <RuntimeEnvBadge />
+>>>>>>> Stashed changes
     </div>
   );
 }

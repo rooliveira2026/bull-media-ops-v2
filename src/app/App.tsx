@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AppShell } from "../shell/AppShell";
 import { LoginPage } from "../auth/LoginPage";
 import { useAuth } from "../auth/AuthProvider";
+import { RuntimeEnvBadge } from "../shared/components/RuntimeEnvBadge";
 import type { RouteKey } from "../shell/navigation";
 import { AiAgentsPage } from "../modules/ai-agents/AiAgentsPage";
 import { ClientIntelligencePage } from "../modules/client-intelligence/ClientIntelligencePage";
@@ -47,20 +48,33 @@ export function App() {
   const { configurationError, isLoading, isSupabaseMode, session } = useAuth();
 
   if (isSupabaseMode && isLoading) {
-    return <div className="app-loading">Carregando sessão...</div>;
+    return (
+      <>
+        <div className="app-loading">Carregando sessão...</div>
+        <RuntimeEnvBadge />
+      </>
+    );
   }
 
   if (isSupabaseMode && configurationError) {
     return (
-      <div className="app-loading app-loading--error">
-        <strong>Configuração Supabase incompleta</strong>
-        <span>{configurationError}</span>
-      </div>
+      <>
+        <div className="app-loading app-loading--error">
+          <strong>Configuração Supabase incompleta</strong>
+          <span>{configurationError}</span>
+        </div>
+        <RuntimeEnvBadge />
+      </>
     );
   }
 
   if (isSupabaseMode && !session) {
-    return <LoginPage />;
+    return (
+      <>
+        <LoginPage />
+        <RuntimeEnvBadge />
+      </>
+    );
   }
 
   return (

@@ -53,6 +53,7 @@ function can(actionKey: ModuleAction) {
 export function ActionsCenter() {
   const { user } = useAuth();
   const [actions, setActions] = useState<RecommendedAction[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [selectedAction, setSelectedAction] = useState<RecommendedAction | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [clientId, setClientId] = useState("all");
@@ -61,7 +62,10 @@ export function ActionsCenter() {
   const [status, setStatus] = useState<RecommendedActionStatus | "all">("all");
   const [platform, setPlatform] = useState("all");
   const [search, setSearch] = useState("");
+<<<<<<< Updated upstream
   const [clients, setClients] = useState<Client[]>([]);
+=======
+>>>>>>> Stashed changes
   const currentProfileId = user?.id ?? currentUser.id;
 
   useEffect(() => {

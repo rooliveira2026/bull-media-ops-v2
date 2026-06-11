@@ -282,14 +282,21 @@ function mapClient(row: Record<string, any>): Client {
 
 async function withMockFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
   const supabase = getSupabaseClient();
-  if (!supabase) return fallback();
+  if (!supabase) {
+    if (isSupabaseMode()) throw new Error("Supabase indisponível.");
+    return fallback();
+  }
   try {
     return await callback();
   } catch (error) {
+<<<<<<< Updated upstream
     if (isSupabaseMode()) {
       console.warn("[supabase:media_ops] leitura indisponível; retornando estado vazio:", error);
       return fallback();
     }
+=======
+    if (isSupabaseMode()) throw error;
+>>>>>>> Stashed changes
     console.warn("[supabase:media_ops] fallback para mock:", error);
     return fallback();
   }
@@ -425,6 +432,7 @@ function rowsForPeriod(period: MediaPeriod) {
 
 export async function getMediaOverview(params: OverviewParams = {}): Promise<MediaOverview> {
   const period = params.period ?? "last_30d";
+<<<<<<< Updated upstream
   const [supabaseRows, supabaseClients, currentActions] = await Promise.all([
     isSupabaseMode()
       ? withMockFallback(() => selectMediaMetrics(period), () => Promise.resolve<MediaMetricDaily[] | null>([]))
@@ -435,11 +443,42 @@ export async function getMediaOverview(params: OverviewParams = {}): Promise<Med
     listRecommendedActions(),
   ]);
   const rows = supabaseRows ?? rowsForPeriod(period);
+=======
+  let rows: MediaMetricDaily[];
+  let clientList: Pick<Client, "id" | "name">[];
+  let currentActions: RecommendedAction[];
+
+  if (isSupabaseMode()) {
+    const [supabaseRows, supabaseClients, supabaseActions] = await Promise.all([
+      selectMediaMetrics(period).catch((error): MediaMetricDaily[] => {
+        console.warn("[supabase:media_ops] métricas indisponíveis; retornando vazio:", error);
+        return [];
+      }),
+      selectMediaClients().catch((error): Client[] => {
+        console.warn("[supabase:media_ops] clientes indisponíveis; retornando vazio:", error);
+        return [];
+      }),
+      listRecommendedActions(),
+    ]);
+    rows = supabaseRows ?? [];
+    clientList = supabaseClients ?? [];
+    currentActions = supabaseActions;
+  } else {
+    rows = rowsForPeriod(period);
+    clientList = mockClients;
+    currentActions = await listRecommendedActions();
+  }
+
+>>>>>>> Stashed changes
   const cost = sum(rows, "cost");
   const conversions = sum(rows, "conversions");
   const revenue = sum(rows, "revenue");
   const topChannels = summarizeChannel(rows);
+<<<<<<< Updated upstream
   const clients = summarizeClients(rows, currentActions, supabaseClients ?? mockClients);
+=======
+  const clients = summarizeClients(rows, currentActions, clientList ?? []);
+>>>>>>> Stashed changes
 
   return {
     period,
@@ -463,6 +502,7 @@ export async function getMediaOverview(params: OverviewParams = {}): Promise<Med
 
 export async function getClientMediaSummary(clientId: string, period: MediaPeriod = "last_30d") {
   const currentActions = await listRecommendedActions();
+<<<<<<< Updated upstream
   const rows = isSupabaseMode()
     ? (await withMockFallback(() => selectMediaMetrics(period), () => Promise.resolve<MediaMetricDaily[] | null>([])) ?? [])
     : rowsForPeriod(period);
@@ -477,10 +517,28 @@ export async function getChannelSummary(clientId?: string, period: MediaPeriod =
     ? (await withMockFallback(() => selectMediaMetrics(period), () => Promise.resolve<MediaMetricDaily[] | null>([])) ?? [])
     : rowsForPeriod(period);
   const rows = periodRows.filter((row) => !clientId || row.clientId === clientId);
+=======
+  const rows = isSupabaseMode() ? await selectMediaMetrics(period).catch(() => []) : rowsForPeriod(period);
+  const clientList = isSupabaseMode() ? await selectMediaClients().catch(() => []) : mockClients;
+  return summarizeClients(rows ?? [], currentActions, clientList ?? []).find((client) => client.clientId === clientId) ?? null;
+}
+
+export async function getChannelSummary(clientId?: string, period: MediaPeriod = "last_30d") {
+  const periodRows = isSupabaseMode() ? await selectMediaMetrics(period).catch(() => []) : rowsForPeriod(period);
+  const rows = (periodRows ?? []).filter((row) => !clientId || row.clientId === clientId);
+>>>>>>> Stashed changes
   return summarizeChannel(rows);
 }
 
 export async function listRecommendedActions(filters: ActionFilters = {}) {
+  if (isSupabaseMode()) {
+    try {
+      return await selectRecommendedActions(filters) ?? [];
+    } catch (error) {
+      console.warn("[supabase:media_ops] ações indisponíveis; retornando vazio:", error);
+      return [];
+    }
+  }
   return withMockFallback(async () => {
     const result = await selectRecommendedActions(filters);
     return result ?? (isSupabaseMode() ? [] : listRecommendedActionsMock(filters));

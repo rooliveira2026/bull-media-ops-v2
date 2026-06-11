@@ -113,12 +113,17 @@ const emptyRepository: CoreRepository = {
   async listIntegrationConnections() {
     return [];
   },
+<<<<<<< Updated upstream
   async createAuditLog(event) {
     return {
       id: `audit_local_${Date.now()}`,
       createdAt: new Date().toISOString(),
       ...event,
     };
+=======
+  async createAuditLog() {
+    throw new Error("Supabase indisponível para registrar auditoria.");
+>>>>>>> Stashed changes
   },
   async listAuditLogs() {
     return [];
@@ -234,7 +239,7 @@ function mapAuditLog(row: Record<string, any>): AuditLog {
 
 async function queryWithFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
   const supabase = getSupabaseClient();
-  if (!supabase) return fallback();
+  if (!supabase) return isSupabaseMode() ? fallback() : fallback();
   try {
     return await callback();
   } catch (error) {
