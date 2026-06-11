@@ -365,7 +365,7 @@ td small,
 
 .kpi-card {
   padding: 16px;
-  min-height: 132px;
+  min-height: 118px;
 }
 
 .kpi-card__top {
@@ -382,8 +382,8 @@ td small,
 }
 
 .kpi-card__icon {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   display: grid;
   place-items: center;
@@ -393,8 +393,8 @@ td small,
 
 .kpi-card__value {
   display: block;
-  margin-top: 22px;
-  font-size: 25px;
+  margin-top: 18px;
+  font-size: 24px;
   line-height: 1;
 }
 
@@ -493,11 +493,11 @@ td small {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  padding: 0 9px;
+  padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: capitalize;
   white-space: nowrap;
 }
@@ -635,6 +635,10 @@ td small {
   background: #ffffff;
 }
 
+.filter-bar--compact {
+  grid-template-columns: repeat(2, minmax(0, 260px));
+}
+
 .filter-bar label {
   display: grid;
   gap: 6px;
@@ -755,6 +759,7 @@ td small {
 .detail-grid {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .detail-item {
@@ -776,6 +781,18 @@ td small {
   display: block;
   margin-top: 5px;
   line-height: 1.45;
+}
+
+.detail-item--full {
+  grid-column: 1 / -1;
+}
+
+.compact-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .history-list {
@@ -1172,7 +1189,18 @@ td small {
 
   .kpi-grid,
   .core-grid,
-  .social-layout {
+  .social-layout,
+  .executive-grid,
+  .client-objective-panel,
+  .settings-layout,
+  .pdm-board,
+  .client-intel-grid,
+  .integration-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-grid,
+  .metric-chip-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1198,7 +1226,17 @@ td small {
   .core-grid,
   .filter-bar,
   .social-layout,
-  .calendar-day {
+  .calendar-day,
+  .executive-grid,
+  .client-objective-panel,
+  .settings-layout,
+  .pdm-board,
+  .client-intel-grid,
+  .integration-grid,
+  .settings-grid,
+  .metric-chip-grid,
+  .detail-grid,
+  .knowledge-columns {
     grid-template-columns: 1fr;
   }
 

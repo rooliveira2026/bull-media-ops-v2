@@ -84,6 +84,13 @@ export interface RecommendedAction {
   metricImpacted: string | null;
   beforeValue: number | null;
   afterValue: number | null;
+  actionGroupId?: string | null;
+  parentActionId?: string | null;
+  affectedItemsCount?: number;
+  groupedOccurrences?: string[];
+  effortLevel?: "baixo" | "médio" | "alto";
+  decisionOwner?: string | null;
+  recommendationType?: string;
   metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
