@@ -1,7 +1,6 @@
 import { Activity, Command } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { RuntimeEnvBadge } from "../shared/components/RuntimeEnvBadge";
-import { isProductionMode } from "../shared/config/env";
 import { navItems, type RouteKey } from "./navigation";
 
 interface AppShellProps {
@@ -12,7 +11,6 @@ interface AppShellProps {
 
 export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
   const { isSupabaseMode, memberships, profile, user, signOut } = useAuth();
-  const isRuntimeSupabase = isSupabaseMode || isProductionMode();
 
   return (
     <div className="app-shell">
@@ -62,10 +60,10 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
           <div className="topbar__actions">
             <div className="topbar__status">
               <span />
-              {isRuntimeSupabase ? "Supabase staging" : "Ambiente de demonstração"}
+              {isSupabaseMode ? "Supabase staging" : "Ambiente de demonstração"}
             </div>
 
-            {isRuntimeSupabase ? (
+            {isSupabaseMode ? (
               <button className="topbar__logout" onClick={signOut} type="button">
                 Sair
                 {profile?.name || user?.email ? ` · ${profile?.name ?? user?.email}` : ""}
@@ -77,10 +75,7 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
 
         <div className="content">{children}</div>
       </main>
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
       <RuntimeEnvBadge />
     </div>
   );
