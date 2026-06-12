@@ -1,0 +1,153 @@
+{
+  "export_id": "sample-v1-controlled-2026-06-12",
+  "source": "legacy_v1_export",
+  "organization_id": "11111111-1111-4111-8111-111111111111",
+  "period": {
+    "start": "2026-06-01",
+    "end": "2026-06-07"
+  },
+  "clients": [
+    {
+      "id": "client_bull_digital",
+      "name": "Bull Digital",
+      "status": "active",
+      "objective": "lead_generation",
+      "business_model": "Marketing Operations",
+      "currency": "BRL",
+      "channels": ["Google Ads", "Meta Ads", "LinkedIn Ads"]
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "v1-google-brand-search",
+      "client_id": "client_bull_digital",
+      "channel": "Google Ads",
+      "campaign_name": "Brand Search - V1 Export",
+      "status": "active"
+    },
+    {
+      "id": "v1-meta-demand-gen",
+      "client_id": "client_bull_digital",
+      "channel": "Meta Ads",
+      "campaign_name": "Demand Gen - V1 Export",
+      "status": "active"
+    },
+    {
+      "id": "v1-linkedin-b2b-leads",
+      "client_id": "client_bull_digital",
+      "channel": "LinkedIn Ads",
+      "campaign_name": "B2B Leads - V1 Export",
+      "status": "active"
+    }
+  ],
+  "metrics": [
+    {
+      "client_id": "client_bull_digital",
+      "campaign_id": "v1-google-brand-search",
+      "channel": "Google Ads",
+      "campaign_name": "Brand Search - V1 Export",
+      "date": "2026-06-01",
+      "cost": 820,
+      "clicks": 310,
+      "impressions": 9200,
+      "conversions": 7,
+      "revenue": 4200
+    },
+    {
+      "client_id": "client_bull_digital",
+      "campaign_id": "v1-meta-demand-gen",
+      "channel": "Meta Ads",
+      "campaign_name": "Demand Gen - V1 Export",
+      "date": "2026-06-01",
+      "cost": 1140,
+      "clicks": 420,
+      "impressions": 18600,
+      "conversions": 9,
+      "revenue": 3600
+    },
+    {
+      "client_id": "client_bull_digital",
+      "campaign_id": "v1-linkedin-b2b-leads",
+      "channel": "LinkedIn Ads",
+      "campaign_name": "B2B Leads - V1 Export",
+      "date": "2026-06-01",
+      "cost": 960,
+      "clicks": 95,
+      "impressions": 7400,
+      "conversions": 3,
+      "revenue": 3900
+    }
+  ],
+  "recommended_actions": [
+    {
+      "client_id": "client_bull_digital",
+      "client_name": "Bull Digital",
+      "channel": "Google Ads",
+      "recommendation_type": "Termos de alta intenção",
+      "theme": "brand-search-intent",
+      "title": "Refinar leitura de termos com intenção executiva",
+      "description": "Validar termos com maior aderência comercial antes de ampliar orçamento.",
+      "priority": "alta",
+      "status": "avaliação",
+      "expected_impact": "Oportunidade de eficiência em aquisição qualificada.",
+      "occurrence": "Brand Search - V1 Export · termos executivos",
+      "effort_level": "baixo",
+      "decision_owner": "Especialista de Mídia"
+    },
+    {
+      "client_id": "client_bull_digital",
+      "client_name": "Bull Digital",
+      "channel": "Meta Ads",
+      "recommendation_type": "Qualidade pós-clique",
+      "theme": "demand-gen-quality",
+      "title": "Validar sinais de qualidade pós-clique",
+      "description": "Cruzar criativo, público e comportamento na página antes da escala.",
+      "priority": "média",
+      "status": "avaliação",
+      "expected_impact": "Melhorar previsibilidade do ciclo de geração de demanda.",
+      "occurrence": "Demand Gen - V1 Export · audiência ampla",
+      "effort_level": "médio",
+      "decision_owner": "Gestor de Conta"
+    },
+    {
+      "client_id": "client_bull_digital",
+      "client_name": "Bull Digital",
+      "channel": "LinkedIn Ads",
+      "recommendation_type": "Fit de audiência",
+      "theme": "b2b-fit",
+      "title": "Separar leituras por senioridade e função",
+      "description": "Organizar aprendizados por cargo para orientar o próximo ciclo.",
+      "priority": "média",
+      "status": "aprovada",
+      "expected_impact": "Gerar oportunidade de evolução com maior fit comercial.",
+      "occurrence": "B2B Leads - V1 Export · founders e heads",
+      "effort_level": "médio",
+      "decision_owner": "Direção"
+    }
+  ],
+  "reports": [
+    {
+      "client_id": "client_bull_digital",
+      "period": "2026-06",
+      "type": "executive_summary",
+      "status": "draft",
+      "narrative": "Resumo fictício para validar a importação controlada da V1."
+    }
+  ],
+  "pdm": [
+    {
+      "client_id": "client_bull_digital",
+      "period": "2026-06",
+      "cycle_objective": "Validar ciclo operacional da V2 com dados reais controlados.",
+      "planned_action": "Revisar ações importadas e priorizar execução assistida.",
+      "status": "specialist_review"
+    }
+  ],
+  "client_intelligence": [
+    {
+      "client_id": "client_bull_digital",
+      "insight_type": "learning",
+      "content": "A primeira importação real deve validar consistência entre métricas, recomendações e leitura executiva."
+    }
+  ]
+}

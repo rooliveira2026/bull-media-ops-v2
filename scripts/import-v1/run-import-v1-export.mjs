@@ -81,6 +81,14 @@ function metric(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function platformKey(channel) {
+  return normalizeChannel(channel).toLowerCase().replaceAll(" ", "_");
+}
+
+function campaignKey(clientId, sourcePlatform, channel, campaignName) {
+  return [clientId, sourcePlatform, normalizeChannel(channel), campaignName || "Consolidado"].join("::");
+}
+
 function sourceType(value) {
   const key = String(value ?? "").toLowerCase();
   if (key.includes("v1") || key.includes("sheet") || key.includes("planilha")) return "legacy_v1_export";
@@ -142,12 +150,31 @@ function assertShape(payload) {
 function normalize(payload, checksum) {
   assertShape(payload);
   const groupedActions = groupActions(payload.recommended_actions ?? []);
+  const explicitCampaigns = payload.campaigns ?? [];
+  const derivedCampaigns = new Map();
+  (payload.metrics ?? []).forEach((row) => {
+    const campaignName = row.campaign_name ?? row.campaign ?? "Consolidado";
+    const channel = normalizeChannel(row.channel);
+    const sourcePlatform = platformKey(row.channel);
+    const key = campaignKey(row.client_id, sourcePlatform, channel, campaignName);
+    if (!derivedCampaigns.has(key)) {
+      derivedCampaigns.set(key, {
+        client_id: row.client_id,
+        external_campaign_id: row.campaign_id ?? row.external_campaign_id ?? key,
+        source_platform: sourcePlatform,
+        channel,
+        campaign_name: campaignName,
+        status: row.status ?? "active",
+      });
+    }
+  });
   const warnings = [];
   if ((payload.recommended_actions ?? []).length !== groupedActions.length) {
     warnings.push(`${payload.recommended_actions.length} ocorrências técnicas agrupadas em ${groupedActions.length} recomendações-mãe.`);
   }
 
   const received = payload.clients.length +
+    explicitCampaigns.length +
     payload.metrics.length +
     (payload.recommended_actions ?? []).length +
     (payload.reports ?? []).length +
@@ -170,11 +197,26 @@ function normalize(payload, checksum) {
       currency: String(client.currency ?? "BRL").toUpperCase(),
       channels: (client.channels ?? []).map(normalizeChannel),
     })),
+    campaigns: [
+      ...explicitCampaigns.map((campaign) => ({
+        client_id: campaign.client_id,
+        external_campaign_id: campaign.external_campaign_id ?? campaign.id ?? null,
+        source_platform: platformKey(campaign.channel ?? campaign.source_platform),
+        channel: normalizeChannel(campaign.channel ?? campaign.source_platform),
+        campaign_name: campaign.campaign_name ?? campaign.name ?? "Consolidado",
+        status: campaign.status ?? "active",
+      })),
+      ...Array.from(derivedCampaigns.values()),
+    ].filter((campaign, index, list) => {
+      const key = campaignKey(campaign.client_id, campaign.source_platform, campaign.channel, campaign.campaign_name);
+      return list.findIndex((item) => campaignKey(item.client_id, item.source_platform, item.channel, item.campaign_name) === key) === index;
+    }),
     metrics: payload.metrics.map((row) => ({
       client_id: row.client_id,
+      external_campaign_id: row.campaign_id ?? row.external_campaign_id ?? null,
       date: row.date ?? payload.period.end,
       period_key: "current_month",
-      source_platform: normalizeChannel(row.channel).toLowerCase().replaceAll(" ", "_"),
+      source_platform: platformKey(row.channel),
       channel: normalizeChannel(row.channel),
       campaign_name: row.campaign_name ?? "Consolidado",
       impressions: metric(row.impressions),
@@ -214,6 +256,7 @@ async function main() {
       checksum,
       recordsReceived: normalized.recordsReceived,
       clients: normalized.clients.length,
+      campaigns: normalized.campaigns.length,
       metrics: normalized.metrics.length,
       groupedActions: normalized.actions.length,
       reports: normalized.reports.length,
@@ -285,6 +328,7 @@ async function main() {
   const skipped = [];
 
   const clientIdMap = new Map();
+  const campaignIdMap = new Map();
   for (const client of normalized.clients) {
     const { data, error } = await supabase
       .from("clients")
@@ -315,15 +359,64 @@ async function main() {
     }
   }
 
+  for (const campaign of normalized.campaigns) {
+    const clientUuid = clientIdMap.get(campaign.client_id);
+    if (!clientUuid) {
+      skipped.push(`campaign_without_client:${campaign.client_id}`);
+      continue;
+    }
+    const campaignMatch = {
+      organization_id: normalized.organizationId,
+      client_id: clientUuid,
+      source_platform: campaign.source_platform,
+      channel: campaign.channel,
+      campaign_name: campaign.campaign_name,
+    };
+    const { data: existingCampaign, error: existingCampaignError } = await supabase
+      .from("media_campaigns")
+      .select("id")
+      .match(campaignMatch)
+      .maybeSingle();
+    if (existingCampaignError) throw existingCampaignError;
+
+    const campaignPayload = {
+      ...campaignMatch,
+      external_campaign_id: campaign.external_campaign_id,
+      status: campaign.status,
+    };
+    const { data, error } = existingCampaign
+      ? await supabase
+        .from("media_campaigns")
+        .update(campaignPayload)
+        .eq("id", existingCampaign.id)
+        .select("*")
+        .single()
+      : await supabase
+        .from("media_campaigns")
+        .insert(campaignPayload)
+        .select("*")
+        .single();
+    if (error) throw error;
+    if (data?.id) {
+      campaignIdMap.set(campaignKey(campaign.client_id, campaign.source_platform, campaign.channel, campaign.campaign_name), data.id);
+      if (campaign.external_campaign_id) campaignIdMap.set(`${campaign.client_id}::${campaign.external_campaign_id}`, data.id);
+    }
+    imported += 1;
+  }
+
   for (const row of normalized.metrics) {
     const clientUuid = clientIdMap.get(row.client_id);
     if (!clientUuid) {
       skipped.push(`metric_without_client:${row.client_id}`);
       continue;
     }
+    const campaignUuid = campaignIdMap.get(`${row.client_id}::${row.external_campaign_id}`) ??
+      campaignIdMap.get(campaignKey(row.client_id, row.source_platform, row.channel, row.campaign_name)) ??
+      null;
     const { error } = await supabase.from("media_metrics_daily").upsert({
       organization_id: normalized.organizationId,
       client_id: clientUuid,
+      campaign_id: campaignUuid,
       date: row.date,
       period_key: row.period_key,
       source_platform: row.source_platform,
@@ -413,12 +506,25 @@ async function main() {
   for (const item of normalized.intelligence) {
     const clientUuid = clientIdMap.get(item.client_id);
     if (!clientUuid) continue;
+    const content = item.learning ?? item.content ?? "Aprendizado importado da V1.";
+    const insightType = item.insight_type ?? "learning";
+    const { data: existingInsight, error: existingInsightError } = await supabase
+      .from("client_intelligence")
+      .select("id")
+      .eq("organization_id", normalized.organizationId)
+      .eq("client_id", clientUuid)
+      .eq("source_id", source.id)
+      .eq("insight_type", insightType)
+      .eq("content", content)
+      .maybeSingle();
+    if (existingInsightError) throw existingInsightError;
+    if (existingInsight) continue;
     const { error } = await supabase.from("client_intelligence").insert({
       organization_id: normalized.organizationId,
       client_id: clientUuid,
       source_id: source.id,
-      insight_type: item.insight_type ?? "learning",
-      content: item.learning ?? item.content ?? "Aprendizado importado da V1.",
+      insight_type: insightType,
+      content,
       metadata: { checksum },
     });
     if (error) throw error;
@@ -463,6 +569,7 @@ async function main() {
     recordsSkipped: skipped.length,
     clientsImported: normalized.clients.length,
     channelsImported: normalized.clients.reduce((total, client) => total + client.channels.length, 0),
+    campaignsImported: normalized.campaigns.length - skipped.filter((item) => item.startsWith("campaign_without_client")).length,
     metricsImported: normalized.metrics.length - skipped.filter((item) => item.startsWith("metric_without_client")).length,
     groupedActions: normalized.actions.length,
     reportsImported: normalized.reports.length,
