@@ -244,6 +244,134 @@ function requireEnv(name) {
   return value;
 }
 
+class RestQuery {
+  constructor(baseUrl, serviceRoleKey, table) {
+    this.baseUrl = baseUrl.replace(/\/$/, "");
+    this.serviceRoleKey = serviceRoleKey;
+    this.table = table;
+    this.method = "GET";
+    this.body = null;
+    this.filters = [];
+    this.params = new URLSearchParams();
+    this.selectColumns = null;
+    this.singleMode = false;
+    this.maybeSingleMode = false;
+    this.prefer = [];
+  }
+
+  select(columns) {
+    this.selectColumns = columns;
+    if (this.method !== "GET" && !this.prefer.includes("return=representation")) {
+      this.prefer.push("return=representation");
+    }
+    return this;
+  }
+
+  eq(column, value) {
+    this.filters.push([column, `eq.${value}`]);
+    return this;
+  }
+
+  match(values) {
+    Object.entries(values).forEach(([column, value]) => this.eq(column, value));
+    return this;
+  }
+
+  insert(body) {
+    this.method = "POST";
+    this.body = body;
+    return this;
+  }
+
+  update(body) {
+    this.method = "PATCH";
+    this.body = body;
+    return this;
+  }
+
+  upsert(body, options = {}) {
+    this.method = "POST";
+    this.body = body;
+    this.prefer.push("resolution=merge-duplicates");
+    if (options.onConflict) this.params.set("on_conflict", options.onConflict);
+    return this;
+  }
+
+  single() {
+    this.singleMode = true;
+    return this.execute();
+  }
+
+  maybeSingle() {
+    this.maybeSingleMode = true;
+    return this.execute();
+  }
+
+  then(resolve, reject) {
+    return this.execute().then(resolve, reject);
+  }
+
+  async execute() {
+    const url = new URL(`${this.baseUrl}/rest/v1/${this.table}`);
+    if (this.selectColumns) url.searchParams.set("select", this.selectColumns);
+    this.params.forEach((value, key) => url.searchParams.set(key, value));
+    this.filters.forEach(([column, value]) => url.searchParams.append(column, value));
+    if (this.singleMode || this.maybeSingleMode) url.searchParams.set("limit", "1");
+
+    const headers = {
+      apikey: this.serviceRoleKey,
+      authorization: `Bearer ${this.serviceRoleKey}`,
+      "content-type": "application/json",
+    };
+    const prefer = this.prefer.length ? this.prefer : this.method === "GET" ? [] : ["return=minimal"];
+    if (prefer.length) headers.prefer = prefer.join(",");
+
+    try {
+      const response = await fetch(url, {
+        method: this.method,
+        headers,
+        body: this.body ? JSON.stringify(this.body) : undefined,
+      });
+      const text = await response.text();
+      const parsed = text ? JSON.parse(text) : null;
+
+      if (!response.ok) {
+        return { data: null, error: new Error(parsed?.message ?? text ?? `Supabase REST ${response.status}`) };
+      }
+
+      if (this.singleMode || this.maybeSingleMode) {
+        const rows = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+        if (!rows.length) {
+          return this.maybeSingleMode
+            ? { data: null, error: null }
+            : { data: null, error: new Error("Nenhum registro retornado.") };
+        }
+        return { data: rows[0], error: null };
+      }
+
+      return { data: parsed, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+}
+
+async function createSupabaseClient(supabaseUrl, serviceRoleKey) {
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    return createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+  } catch (error) {
+    if (String(error?.message ?? error).includes("@supabase/supabase-js")) {
+      return {
+        from(table) {
+          return new RestQuery(supabaseUrl, serviceRoleKey, table);
+        },
+      };
+    }
+    throw error;
+  }
+}
+
 async function main() {
   const raw = await readFile(filePath, "utf8");
   const checksum = createHash("sha256").update(raw).digest("hex");
@@ -269,8 +397,7 @@ async function main() {
 
   const supabaseUrl = requireEnv("SUPABASE_URL");
   const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-  const { createClient } = await import("@supabase/supabase-js");
-  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+  const supabase = await createSupabaseClient(supabaseUrl, serviceRoleKey);
 
   const startedAt = new Date().toISOString();
   const { data: existingBatch, error: existingBatchError } = await supabase
