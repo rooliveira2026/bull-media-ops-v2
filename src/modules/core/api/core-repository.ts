@@ -230,7 +230,7 @@ function mapAuditLog(row: Record<string, any>): AuditLog {
 
 async function queryWithFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
   const supabase = getSupabaseClient();
-  if (!supabase) return isSupabaseMode() ? fallback() : fallback();
+  if (!supabase) return fallback();
   try {
     return await callback();
   } catch (error) {
@@ -247,24 +247,27 @@ function assertNoError(error: unknown) {
   if (error) throw error;
 }
 
+function assertSupabaseClient() {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase indisponível.");
+  return supabase;
+}
+
 const supabaseRepository: CoreRepository = {
   async listOrganizations() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listOrganizations();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("organizations").select("*").order("name");
     assertNoError(error);
     return (data ?? []).map(mapOrganization);
   },
   async listClients() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listClients();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("clients").select("*").order("name");
     assertNoError(error);
     return (data ?? []).map(mapClient);
   },
   async getClientById(id) {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.getClientById(id);
+    const supabase = assertSupabaseClient();
     const query = supabase.from("clients").select("*");
     const { data, error } = uuidPattern.test(id)
       ? await query.eq("id", id).maybeSingle()
@@ -273,50 +276,43 @@ const supabaseRepository: CoreRepository = {
     return data ? mapClient(data) : null;
   },
   async listProfiles() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listProfiles();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("profiles").select("*").order("name");
     assertNoError(error);
     return (data ?? []).map(mapUser);
   },
   async listRoles() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listRoles();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("roles").select("*").order("name");
     assertNoError(error);
     return (data ?? []).map(mapRole);
   },
   async listModules() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listModules();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("modules").select("*").order("name");
     assertNoError(error);
     return (data ?? []).map(mapModule);
   },
   async listClientAccess() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listClientAccess();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("client_access").select("*").order("created_at");
     assertNoError(error);
     return (data ?? []).map(mapClientAccess);
   },
   async listDataSources() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listDataSources();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("data_sources").select("*").order("name");
     assertNoError(error);
     return (data ?? []).map(mapDataSource);
   },
   async listIntegrationConnections() {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listIntegrationConnections();
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase.from("integration_connections").select("*").order("created_at");
     assertNoError(error);
     return (data ?? []).map(mapIntegrationConnection);
   },
   async createAuditLog(event) {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.createAuditLog(event);
+    const supabase = assertSupabaseClient();
     const { data, error } = await supabase
       .from("audit_logs")
       .insert({
@@ -335,8 +331,7 @@ const supabaseRepository: CoreRepository = {
     return mapAuditLog(data);
   },
   async listAuditLogs(filters = {}) {
-    const supabase = getSupabaseClient();
-    if (!supabase) return mockRepository.listAuditLogs(filters);
+    const supabase = assertSupabaseClient();
     let query = supabase.from("audit_logs").select("*").order("created_at", { ascending: false });
     if (filters.entityType) query = query.eq("entity_type", filters.entityType);
     if (filters.entityId) query = query.eq("entity_id", filters.entityId);

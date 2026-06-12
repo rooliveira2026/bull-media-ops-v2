@@ -3,6 +3,7 @@ import { AppShell } from "../shell/AppShell";
 import { LoginPage } from "../auth/LoginPage";
 import { useAuth } from "../auth/AuthProvider";
 import { RuntimeEnvBadge } from "../shared/components/RuntimeEnvBadge";
+import { isProductionMode } from "../shared/config/env";
 import type { RouteKey } from "../shell/navigation";
 import { AiAgentsPage } from "../modules/ai-agents/AiAgentsPage";
 import { ClientIntelligencePage } from "../modules/client-intelligence/ClientIntelligencePage";
@@ -46,8 +47,9 @@ function renderRoute(route: RouteKey) {
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>("executive");
   const { configurationError, isLoading, isSupabaseMode, session } = useAuth();
+  const mustUseAuthGate = isSupabaseMode || isProductionMode();
 
-  if (isSupabaseMode && isLoading) {
+  if (mustUseAuthGate && isLoading) {
     return (
       <>
         <div className="app-loading">Carregando sessão...</div>
@@ -56,7 +58,7 @@ export function App() {
     );
   }
 
-  if (isSupabaseMode && configurationError) {
+  if (mustUseAuthGate && configurationError) {
     return (
       <>
         <div className="app-loading app-loading--error">
@@ -68,7 +70,7 @@ export function App() {
     );
   }
 
-  if (isSupabaseMode && !session) {
+  if (mustUseAuthGate && !session) {
     return (
       <>
         <LoginPage />

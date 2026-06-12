@@ -12,13 +12,15 @@ const rawDataMode = String(env.VITE_DATA_MODE ?? "").trim();
 const normalizedDataMode = rawDataMode.toLowerCase();
 const supabaseUrl = String(env.VITE_SUPABASE_URL ?? "").trim();
 const supabaseAnonKey = String(env.VITE_SUPABASE_ANON_KEY ?? "").trim();
+const isProduction = Boolean(env.PROD);
+const resolvedDataMode = (isProduction || normalizedDataMode === "supabase" ? "supabase" : "mock") as DataMode;
 
 export const appConfig = {
   supabaseUrl,
   supabaseAnonKey,
-  dataMode: (normalizedDataMode === "supabase" ? "supabase" : "mock") as DataMode,
+  dataMode: resolvedDataMode,
   rawDataMode,
-  isProduction: Boolean(env.PROD),
+  isProduction,
 };
 
 export function isSupabaseConfigured() {
@@ -29,13 +31,17 @@ export function isSupabaseMode() {
   return appConfig.dataMode === "supabase";
 }
 
+export function isProductionMode() {
+  return appConfig.isProduction;
+}
+
 export function shouldUseSupabase() {
   return isSupabaseMode() && isSupabaseConfigured();
 }
 
 export function getSupabaseConfigurationError() {
   if (!isSupabaseMode() || isSupabaseConfigured()) return null;
-  return "VITE_DATA_MODE=supabase exige VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.";
+  return "Modo Supabase/produção exige VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.";
 }
 
 export const runtimeEnvDiagnostics = {

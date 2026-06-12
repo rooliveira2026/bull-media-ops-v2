@@ -1,6 +1,8 @@
-import { mockClients } from "../../shared/api/mock-data";
+import { useEffect, useState } from "react";
 import { getClientConfig, objectiveLabels } from "../../shared/api/client-config";
 import { PageHeader } from "../../shared/components/PageHeader";
+import { listClients } from "../core/api/core-repository";
+import type { Client } from "../../shared/types/core";
 
 const intelligence = {
   client_intercity: {
@@ -33,6 +35,14 @@ const intelligence = {
 };
 
 export function ClientIntelligencePage() {
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    listClients()
+      .then(setClients)
+      .catch(() => setClients([]));
+  }, []);
+
   return (
     <section>
       <PageHeader
@@ -42,9 +52,10 @@ export function ClientIntelligencePage() {
         meta="Cliente"
       />
       <div className="client-intel-grid">
-        {mockClients.map((client) => {
+        {clients.map((client) => {
           const config = getClientConfig(client.id);
           const item = intelligence[client.id as keyof typeof intelligence];
+          if (!item) return null;
           return (
             <article className="section-card" key={client.id}>
               <div className="section-card__header">

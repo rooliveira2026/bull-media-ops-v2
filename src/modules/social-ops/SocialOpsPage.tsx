@@ -8,13 +8,14 @@ import {
   Search,
   SlidersHorizontal,
 } from "lucide-react";
-import { mockClients, mockModuleAccess, mockRoles, mockUsers } from "../../shared/api/mock-data";
+import { mockModuleAccess, mockRoles, mockUsers } from "../../shared/api/mock-data";
 import { KpiCard } from "../../shared/components/KpiCard";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { canPerformModuleAction } from "../../shared/permissions/permissions";
-import type { AuditLog, ModuleAction } from "../../shared/types/core";
+import type { AuditLog, Client, ModuleAction } from "../../shared/types/core";
 import {
   approveSocialPost,
+  listSocialClients,
   listSocialPillars,
   listSocialPostApprovals,
   listSocialPostAuditEvents,
@@ -66,6 +67,7 @@ function can(actionKey: ModuleAction) {
 export function SocialOpsPage() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [pillars, setPillars] = useState<SocialPillar[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
   const [activeTab, setActiveTab] = useState<ModalTab>("summary");
   const [clientId, setClientId] = useState("all");
@@ -76,7 +78,8 @@ export function SocialOpsPage() {
   const [search, setSearch] = useState("");
 
   async function refreshPosts() {
-    const [pillarData, postData] = await Promise.all([
+    const [clientData, pillarData, postData] = await Promise.all([
+      listSocialClients(),
       listSocialPillars(),
       listSocialPosts({
         clientId,
@@ -87,6 +90,7 @@ export function SocialOpsPage() {
         search,
       }),
     ]);
+    setClients(clientData);
     setPillars(pillarData);
     setPosts(postData);
     setSelectedPost((current) => {
@@ -145,7 +149,7 @@ export function SocialOpsPage() {
       </div>
 
       <div className="filter-bar social-filter-bar">
-        <label><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="all">Todos</option>{mockClients.map((client) => <option value={client.id} key={client.id}>{client.name}</option>)}</select></label>
+        <label><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="all">Todos</option>{clients.map((client) => <option value={client.id} key={client.id}>{client.name}</option>)}</select></label>
         <label><span>Canal</span><select value={channel} onChange={(event) => setChannel(event.target.value as SocialChannel | "all")}><option value="all">Todos</option>{Object.entries(channelLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>
         <label><span>Pilar</span><select value={pillarId} onChange={(event) => setPillarId(event.target.value)}><option value="all">Todos</option>{pillars.map((pillar) => <option value={pillar.id} key={pillar.id}>{pillar.name}</option>)}</select></label>
         <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as SocialPostStatus | "all")}><option value="all">Todos</option>{Object.entries(statusLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>
