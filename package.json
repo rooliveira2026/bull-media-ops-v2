@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "import:v1": "node scripts/import-v1/run-import-v1-export.mjs",
+    "export:v1:staging": "node scripts/import-v1/generate-full-staging-export.mjs",
     "import:v1:dry-run": "node scripts/import-v1/run-import-v1-export.mjs --file supabase/seed/examples/v1-export-sample.json --dry-run",
     "preview": "vite preview"
   },
