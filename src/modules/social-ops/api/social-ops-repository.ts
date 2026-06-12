@@ -1,6 +1,7 @@
 import { createAuditEvent } from "../../../shared/audit/audit";
 import { mockClients } from "../../../shared/api/mock-data";
 import { getSupabaseClient } from "../../../shared/api/supabase-client";
+import { isSupabaseMode } from "../../../shared/config/env";
 import { listAuditLogs } from "../../core/api/core-repository";
 import type { AuditLog, ModuleAction } from "../../../shared/types/core";
 import type {
@@ -216,10 +217,16 @@ function mapApproval(row: Record<string, any>): SocialPostApproval {
 
 async function withMockFallback<T>(callback: () => Promise<T>, fallback: () => Promise<T>) {
   const supabase = getSupabaseClient();
-  if (!supabase) return fallback();
+  if (!supabase) {
+    return fallback();
+  }
   try {
     return await callback();
   } catch (error) {
+    if (isSupabaseMode()) {
+      console.warn("[supabase:social_ops] operação indisponível; retornando estado seguro:", error);
+      return fallback();
+    }
     console.warn("[supabase:social_ops] fallback para mock:", error);
     return fallback();
   }
@@ -306,7 +313,7 @@ export async function listSocialPillars(): Promise<SocialPillar[]> {
     const { data, error } = await supabase.from("social_pillars").select("*").order("name");
     assertNoError(error);
     return (data ?? []).map(mapPillar);
-  }, () => Promise.resolve(pillars));
+  }, () => Promise.resolve(isSupabaseMode() ? [] : pillars));
 }
 
 export async function listSocialPosts(filters: SocialPostFilters = {}): Promise<SocialPost[]> {
@@ -333,7 +340,7 @@ export async function listSocialPosts(filters: SocialPostFilters = {}): Promise<
     const { data, error } = await query;
     assertNoError(error);
     return (data ?? []).map(mapPost);
-  }, () => Promise.resolve(listSocialPostsMock(filters)));
+  }, () => Promise.resolve(isSupabaseMode() ? [] : listSocialPostsMock(filters)));
 }
 
 function listSocialPostsMock(filters: SocialPostFilters = {}) {
@@ -365,6 +372,7 @@ export async function submitSocialPost(postId: string, payload: SocialPostTransi
     await auditPost(post, "submit_social_post", payload.profileId, { note: payload.note ?? null });
     return post;
   }, async () => {
+    if (isSupabaseMode()) throw new Error("Supabase indisponível para enviar post social.");
     const post = updatePost(findPost(postId), { approvalStatus: "submitted", status: "in_production" });
     createApproval(post, "submitted", payload);
     await auditPost(post, "submit_social_post", payload.profileId, { note: payload.note ?? null });
@@ -379,6 +387,7 @@ export async function approveSocialPost(postId: string, payload: SocialPostTrans
     await auditPost(post, "approve_social_post", payload.profileId, { note: payload.note ?? null });
     return post;
   }, async () => {
+    if (isSupabaseMode()) throw new Error("Supabase indisponível para aprovar post social.");
     const post = updatePost(findPost(postId), { approvalStatus: "approved", status: "scheduled" });
     createApproval(post, "approved", payload);
     await auditPost(post, "approve_social_post", payload.profileId, { note: payload.note ?? null });
@@ -396,6 +405,7 @@ export async function requestSocialPostAdjustments(postId: string, payload: Soci
     await auditPost(post, "request_social_post_adjustments", payload.profileId, { note: payload.note ?? null });
     return post;
   }, async () => {
+    if (isSupabaseMode()) throw new Error("Supabase indisponível para solicitar ajustes no post social.");
     const post = updatePost(findPost(postId), { approvalStatus: "adjustments_requested", status: "in_production" });
     createApproval(post, "adjustments_requested", payload);
     await auditPost(post, "request_social_post_adjustments", payload.profileId, { note: payload.note ?? null });
@@ -413,6 +423,7 @@ export async function updateSocialPostStatus(
     await auditPost(post, "update_social_post_status", payload.profileId, { note: payload.note ?? null });
     return post;
   }, async () => {
+    if (isSupabaseMode()) throw new Error("Supabase indisponível para atualizar post social.");
     const post = updatePost(findPost(postId), { status });
     await auditPost(post, "update_social_post_status", payload.profileId, { note: payload.note ?? null });
     return post;
@@ -430,7 +441,7 @@ export async function listSocialPostApprovals(postId: string): Promise<SocialPos
       .order("created_at", { ascending: false });
     assertNoError(error);
     return (data ?? []).map(mapApproval);
-  }, () => Promise.resolve(approvals.filter((approval) => approval.postId === postId)));
+  }, () => Promise.resolve(isSupabaseMode() ? [] : approvals.filter((approval) => approval.postId === postId)));
 }
 
 export async function listSocialPostAuditEvents(postId: string): Promise<AuditLog[]> {
@@ -438,6 +449,7 @@ export async function listSocialPostAuditEvents(postId: string): Promise<AuditLo
 }
 
 export async function listSocialClients() {
+  if (isSupabaseMode()) return [];
   return mockClients;
 }
 
