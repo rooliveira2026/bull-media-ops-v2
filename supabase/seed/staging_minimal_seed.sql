@@ -593,25 +593,33 @@ on conflict (id) do update set
 
 do $$
 declare
-  org_id uuid;
-  client_id uuid;
-  pillar_id uuid := '77777777-7777-4777-8777-777777777771';
+  v_org_id uuid;
+  v_client_id uuid;
+  v_pillar_id uuid := '77777777-7777-4777-8777-777777777771';
 begin
   if to_regclass('public.social_posts') is null then
     return;
   end if;
 
-  select id into org_id from public.organizations where slug = 'bull-digital' limit 1;
-  select id into client_id from public.clients where organization_id = org_id and client_id = 'client_bull_digital' limit 1;
+  select o.id into v_org_id
+  from public.organizations o
+  where o.slug = 'bull-digital'
+  limit 1;
 
-  if org_id is null or client_id is null then
+  select c.id into v_client_id
+  from public.clients c
+  where c.organization_id = v_org_id
+    and c.client_id = 'client_bull_digital'
+  limit 1;
+
+  if v_org_id is null or v_client_id is null then
     return;
   end if;
 
   insert into public.social_pillars (id, organization_id, name, description, status)
   values (
-    pillar_id,
-    org_id,
+    v_pillar_id,
+    v_org_id,
     'Marketing Operations',
     'Conteúdos sobre governança, mídia, dados e inteligência aplicada.',
     'active'
@@ -639,9 +647,9 @@ begin
   values
     (
       '88888888-8888-4888-8888-888888888881',
-      org_id,
-      client_id,
-      pillar_id,
+      v_org_id,
+      v_client_id,
+      v_pillar_id,
       'Como transformar mídia em rotina de decisão',
       'linkedin',
       'post',
@@ -653,9 +661,9 @@ begin
     ),
     (
       '88888888-8888-4888-8888-888888888882',
-      org_id,
-      client_id,
-      pillar_id,
+      v_org_id,
+      v_client_id,
+      v_pillar_id,
       'Central de ações para ciclos de performance',
       'instagram',
       'carousel',
@@ -680,15 +688,27 @@ end $$;
 
 do $$
 declare
-  org_id uuid;
-  client_id uuid;
-  source_id uuid;
+  v_org_id uuid;
+  v_client_id uuid;
+  v_source_id uuid;
 begin
-  select id into org_id from public.organizations where slug = 'bull-digital' limit 1;
-  select id into client_id from public.clients where organization_id = org_id and client_id = 'client_bull_digital' limit 1;
-  select id into source_id from public.data_sources where key = 'staging_v1_controlled_export' limit 1;
+  select o.id into v_org_id
+  from public.organizations o
+  where o.slug = 'bull-digital'
+  limit 1;
 
-  if org_id is null or client_id is null then
+  select c.id into v_client_id
+  from public.clients c
+  where c.organization_id = v_org_id
+    and c.client_id = 'client_bull_digital'
+  limit 1;
+
+  select ds.id into v_source_id
+  from public.data_sources ds
+  where ds.key = 'staging_v1_controlled_export'
+  limit 1;
+
+  if v_org_id is null or v_client_id is null then
     return;
   end if;
 
@@ -706,9 +726,9 @@ begin
     )
     values (
       '99999999-9999-4999-8999-999999999991',
-      org_id,
-      client_id,
-      source_id,
+      v_org_id,
+      v_client_id,
+      v_source_id,
       to_char(current_date, 'YYYY-MM'),
       'executive_summary',
       'draft',
@@ -743,9 +763,9 @@ begin
     )
     values (
       '99999999-9999-4999-8999-999999999992',
-      org_id,
-      client_id,
-      source_id,
+      v_org_id,
+      v_client_id,
+      v_source_id,
       to_char(current_date, 'YYYY-MM'),
       'Validar mídia, ações e governança da V2 em staging.',
       array['Google Ads', 'Meta Ads', 'LinkedIn Ads'],
@@ -785,18 +805,18 @@ begin
     values
       (
         '99999999-9999-4999-8999-999999999993',
-        org_id,
-        client_id,
-        source_id,
+        v_org_id,
+        v_client_id,
+        v_source_id,
         'learning',
         'A Bull Media Ops V2 deve priorizar ciclos pequenos, auditáveis e separados por domínio.',
         '{"stage":"staging_seed"}'::jsonb
       ),
       (
         '99999999-9999-4999-8999-999999999994',
-        org_id,
-        client_id,
-        source_id,
+        v_org_id,
+        v_client_id,
+        v_source_id,
         'strategic_note',
         'A primeira validação operacional deve confirmar overview, ações, integrações e Social Ops sem payload gigante.',
         '{"stage":"staging_seed"}'::jsonb
