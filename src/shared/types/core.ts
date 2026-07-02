@@ -32,6 +32,13 @@ export type ModuleAction =
   | "approve_social_post"
   | "request_social_post_adjustments"
   | "update_social_post_status"
+  | "create_social_post"
+  | "edit_social_post"
+  | "create_social_approval_batch"
+  | "revoke_social_approval_batch"
+  | "add_social_post_comment"
+  | "client_approved_social_post"
+  | "client_requested_social_adjustments"
   | "manage";
 
 export type IntegrationStatus = "not_connected" | "connected" | "syncing" | "error";
