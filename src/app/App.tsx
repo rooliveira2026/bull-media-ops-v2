@@ -15,6 +15,7 @@ import { ExecutiveOverview } from "../modules/media-ops/ExecutiveOverview";
 import { MediaOpsPage } from "../modules/media-ops/MediaOpsPage";
 import { PdmPage } from "../modules/pdm/PdmPage";
 import { ReportsPage } from "../modules/reports/ReportsPage";
+import { SocialApprovalPage } from "../modules/social-ops/SocialApprovalPage";
 import { SocialOpsPage } from "../modules/social-ops/SocialOpsPage";
 
 function renderRoute(route: RouteKey) {
@@ -48,6 +49,28 @@ export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>("executive");
   const { configurationError, isLoading, isSupabaseMode, session } = useAuth();
   const mustUseAuthGate = isSupabaseMode || isProductionMode();
+  const socialApprovalToken = getSocialApprovalToken();
+
+  if (socialApprovalToken) {
+    if (configurationError) {
+      return (
+        <>
+          <div className="app-loading app-loading--error">
+            <strong>Configuração Supabase incompleta</strong>
+            <span>{configurationError}</span>
+          </div>
+          <RuntimeEnvBadge />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <SocialApprovalPage token={socialApprovalToken} />
+        <RuntimeEnvBadge />
+      </>
+    );
+  }
 
   if (mustUseAuthGate && isLoading) {
     return (
@@ -84,4 +107,10 @@ export function App() {
       {renderRoute(activeRoute)}
     </AppShell>
   );
+}
+
+function getSocialApprovalToken() {
+  if (typeof window === "undefined") return "";
+  const match = window.location.pathname.match(/^\/approval\/social\/([^/]+)$/);
+  return match?.[1] ? decodeURIComponent(match[1]) : "";
 }
